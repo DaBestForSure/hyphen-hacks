@@ -1,5 +1,230 @@
-// 1. Log the current page URL to the console
-console.log("Current page URL:", window.location.href);
+// Enhanced content.js with sentiment analysis and news site detection
+// config.js is loaded first, so we can access the global 'config' variable
+
+// 1. Define news sites we care about
+const NEWS_SITES = [
+    'nytimes.com',
+    'economist.com', 
+    'wsj.com',
+    'washingtonpost.com'
+];
+
+// 2. Check if we're on a news site
+function isOnNewsSite() {
+    const currentDomain = window.location.hostname.replace('www.', '');
+    return NEWS_SITES.some(site => currentDomain.includes(site));
+}
+
+// 3. Extract article title from the page
+function extractArticleTitle() {
+    // Try multiple selectors that news sites commonly use
+    const selectors = [
+        'h1[data-testid="headline"]', // NYTimes
+        'h1.headline', // WSJ
+        'h1.article__headline', // Common pattern
+        'h1[class*="headline"]', // Any h1 with "headline" in class
+        'h1[class*="title"]', // Any h1 with "title" in class
+        'article h1', // H1 inside article tag
+        '.article-title', // Generic article title class
+        'h1' // Fallback to any h1
+    ];
+    
+    for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element && element.textContent.trim()) {
+            return element.textContent.trim();
+        }
+    }
+    
+    // Ultimate fallback to page title
+    return document.title;
+}
+
+// 4. Extract article text/content from the page
+function extractArticleText() {
+    // Try multiple selectors for article content
+    const contentSelectors = [
+        'section[name="articleBody"]', // NYTimes
+        '.article-body', // Common pattern
+        '.story-body', // Common pattern
+        'div[data-testid="articleBody"]', // Some sites
+        'article .content', // Generic
+        'article p', // Paragraphs in article
+        '.post-content', // Blog posts
+        'main article', // Main article content
+        '[role="main"] p' // Accessible main content
+    ];
+    
+    let articleText = '';
+    
+    // Try each selector to find article content
+    for (const selector of contentSelectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+            // If it's a container, get all paragraph text
+            if (selector.includes('p')) {
+                const paragraphs = document.querySelectorAll(selector);
+                articleText = Array.from(paragraphs)
+                    .slice(0, 10) // Limit to first 10 paragraphs for API efficiency
+                    .map(p => p.textContent.trim())
+                    .filter(text => text.length > 20) // Filter out short/empty paragraphs
+                    .join(' ');
+            } else {
+                // Get all text from the container
+                const paragraphs = element.querySelectorAll('p');
+                if (paragraphs.length > 0) {
+                    articleText = Array.from(paragraphs)
+                        .slice(0, 10) // Limit to first 10 paragraphs
+                        .map(p => p.textContent.trim())
+                        .filter(text => text.length > 20)
+                        .join(' ');
+                } else {
+                    articleText = element.textContent.trim();
+                }
+            }
+            
+            if (articleText && articleText.length > 100) {
+                break; // Found good content, stop looking
+            }
+        }
+    }
+    
+    // Limit text length for API efficiency (Google Cloud has limits)
+    if (articleText.length > 3000) {
+        articleText = articleText.substring(0, 3000) + '...';
+    }
+    
+    return articleText;
+}
+
+// 5. Sentiment analysis function
+async function analyzeSentiment(text) {
+    try {
+        const response = await fetch(`https://language.googleapis.com/v1/documents:analyzeSentiment?key=${config.GOOGLE_API}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                document: { type: 'PLAIN_TEXT', content: text }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.documentSentiment;
+    } catch (error) {
+        console.error("Error analyzing sentiment:", error);
+        return null;
+    }
+}
+
+// 6. Analyze both title and content, check multiple conditions
+async function analyzeArticleSentiment(title, articleText) {
+    console.log("Analyzing title:", title.substring(0, 100) + "...");
+    console.log("Analyzing article text:", articleText.substring(0, 100) + "...");
+    
+    // Analyze title sentiment
+    const titleSentiment = await analyzeSentiment(title);
+    
+    if (!titleSentiment) {
+        console.log("Could not analyze title sentiment");
+        return { shouldShow: false, titleScore: null, textScore: null, combinedScore: null };
+    }
+    
+    console.log("Title sentiment score:", titleSentiment.score);
+    
+    let textSentiment = null;
+    let combinedScore = titleSentiment.score; // Default to title score
+    
+    // If we have article text, analyze it too
+    if (articleText && articleText.length > 50) {
+        textSentiment = await analyzeSentiment(articleText);
+        
+        if (textSentiment) {
+            console.log("Article text sentiment score:", textSentiment.score);
+            
+            // Calculate combined score with 60/40 weighting (title/text)
+            combinedScore = (titleSentiment.score * 0.6) + (textSentiment.score * 0.4);
+            console.log("Combined weighted sentiment score:", combinedScore);
+        } else {
+            console.log("Could not analyze article text");
+        }
+    } else {
+        console.log("No article text found");
+    }
+    
+    // Check all three conditions:
+    // 1. Title is negative enough (< -0.2)
+    // 2. Text is negative enough (< -0.2) 
+    // 3. Combined score is negative (< 0)
+    const titleIsNegative = titleSentiment.score < -0.2;
+    const textIsNegative = textSentiment && textSentiment.score < -0.2;
+    const combinedIsNegative = combinedScore < 0;
+    
+    const shouldShow = titleIsNegative || textIsNegative || combinedIsNegative;
+    
+    console.log(`Title negative (< -0.2): ${titleIsNegative}`);
+    console.log(`Text negative (< -0.2): ${textIsNegative}`);
+    console.log(`Combined negative (< 0): ${combinedIsNegative}`);
+    console.log(`Should show extension: ${shouldShow}`);
+    
+    return {
+        shouldShow: shouldShow,
+        titleScore: titleSentiment.score,
+        textScore: textSentiment ? textSentiment.score : null,
+        combinedScore: combinedScore
+    };
+}
+
+// 7. Main initialization function
+async function initializeExtension() {
+    console.log("Current page URL:", window.location.href);
+    
+    // Only proceed if we're on a news site
+    if (!isOnNewsSite()) {
+        console.log("Not on a news site, extension will not activate");
+        return;
+    }
+    
+    console.log("On news site, checking article sentiment...");
+    
+    // Extract article title and text
+    const articleTitle = extractArticleTitle();
+    const articleText = extractArticleText();
+    
+    console.log("Article title:", articleTitle);
+    console.log("Article text length:", articleText.length, "characters");
+    
+    if (!articleTitle) {
+        console.log("Could not extract article title");
+        return;
+    }
+    
+    // Analyze sentiment and check if we should show extension
+    const sentimentResult = await analyzeArticleSentiment(articleTitle, articleText);
+    
+    if (sentimentResult.titleScore === null) {
+        console.log("Could not analyze sentiment");
+        return;
+    }
+    
+    console.log("Title sentiment score:", sentimentResult.titleScore);
+    if (sentimentResult.textScore !== null) {
+        console.log("Text sentiment score:", sentimentResult.textScore);
+    }
+    console.log("Combined sentiment score:", sentimentResult.combinedScore);
+    
+    // Show extension if any of the three conditions are met:
+    // 1. Title < -0.2, OR 2. Text < -0.2, OR 3. Combined < 0
+    if (sentimentResult.shouldShow) {
+        console.log("Negative sentiment detected (title < -0.2 OR text < -0.2 OR combined < 0), showing extension icon");
+        createIcon();
+    } else {
+        console.log("No negative sentiment conditions met, extension will not show");
+    }
+}
 
 // Define component URLs from web_accessible_resources
 const textBoxHTMLUrl = chrome.runtime.getURL("resources/textBox.html");
@@ -17,7 +242,7 @@ const iconUrls = {
 // Flag to track the state of the component
 let isTextBoxOpen = false;
 
-// 2. Create the fixed icon element
+// 8. Create the fixed icon element
 function createIcon() {
     const container = document.createElement('div');
     container.id = 'eco-extension-icon';
@@ -183,7 +408,11 @@ function closeTextBox() {
     if (script) script.remove();
 }
 
-// Ensure we only create the icon once
-if (!document.getElementById('eco-extension-icon')) {
-    createIcon();
+// 9. Initialize everything when the page loads
+// Wait for the page to be fully loaded before trying to extract title
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeExtension);
+} else {
+    // Page already loaded
+    initializeExtension();
 }
