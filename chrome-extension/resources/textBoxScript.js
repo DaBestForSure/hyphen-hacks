@@ -72,11 +72,11 @@
             // Use static/default data for active state/icons for simplicity
             subtextActive: "seeking to put god's love into action, habitat for humanity brings people together to build homes, communities, and hope.", 
             iconList: [
-                { id: 'money', src: receivedIconUrls.money, color: 'white' }, 
-                { id: 'food', src: receivedIconUrls.food, color: 'white' },
-                { id: 'globe', src: receivedIconUrls.globe, color: 'white' }
-            ],
-            charityURL: "hhtps:"
+            { id: 'money', src: receivedIconUrls.money.url, description: receivedIconUrls.money.description }, 
+            { id: 'food', src: receivedIconUrls.food.url, description: receivedIconUrls.food.description },
+            { id: 'globe', src: receivedIconUrls.globe.url, description: receivedIconUrls.globe.description }
+        ],
+        charityURL: "hhtps:"
         };
 
         // Truncate title if too long
@@ -104,10 +104,11 @@
         if (iconsEl) {
             iconsEl.innerHTML = initialInputs.iconList.map(item => 
                 `
-                <div class="styled-icon-box" title="${item.id}">
+                <div class="styled-icon-box" data-icon-id="${item.id}">
                     <div class="icon-content">
                         <img src="${item.src}" alt="${item.id}" />
                     </div>
+                    <div class="icon-tooltip">${item.description}</div>
                 </div>
                 `
             ).join('');

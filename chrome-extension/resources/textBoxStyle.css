@@ -3,7 +3,7 @@
     /* Styles are mostly in content.js, but ensure width consistency */
     width: 350px; 
     background-color: #000843; 
-    padding: 4px; /* Internal padding to create a gap around the stack */
+    padding: 0 15px 10px 0px; /* Internal padding to create a gap around the stack */
     box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5); /* A subtle shadow for depth */
     border-radius: 8px;
 }
@@ -60,7 +60,7 @@
     width: 100%;
     /* Crucial: Hide overflow so the component's rounded corners don't show through 
        at the top/bottom where they shouldn't */
-    overflow: hidden; 
+    /* overflow: hidden;  */
 }
 
 /* Base Styles for the Inner Component */
@@ -74,7 +74,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    overflow: hidden; /* For rounded corners */
+    /* overflow: hidden; For rounded corners */
     transition: 
         height 0.4s ease-in-out, 
         padding 0.4s ease-in-out, /* Added padding for a smoother look */
@@ -235,12 +235,13 @@
     border-bottom: 0.2px solid white;
     border-left: none;
     /* Drop Shadow: blur 8, spread 8, white 30% opacity */
-    box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
+    /* box-shadow: 0 0 4px 4px rgba(255, 255, 255, 0.3); */
     align-items: flex-start; /* Align content to the top */
     padding-top: 16px !important; 
     /* padding-bottom: 16px; */
     flex-direction: column; /* Stack content vertically */
     justify-content: flex-start;
+    border-radius: 0 8px 8px 0 !important; 
 }
 .variant-active .content-left,
 .variant-active .content-right {
@@ -278,3 +279,66 @@
     margin-top: auto; /* Push to the bottom */
 }
 
+.styled-icon-box {
+    /* Crucial for positioning the tooltip relative to the icon box */
+    position: relative; 
+    z-index: 100; 
+}
+
+.icon-tooltip {
+    /* Tooltip styling */
+    position: absolute;
+    bottom: calc(100% + 8px); /* Position 8px above the icon box */
+    left: 50%;
+    transform: translateX(-50%); /* Center */
+    white-space: nowrap; 
+    background-color: #333;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10pt;
+    
+    /* CRITICAL FIX: Ensure high z-index and visibility */
+    z-index: 99999; /* Very high z-index to break out of component bounds */
+    pointer-events: none;
+    
+    /* Animation and initial state */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+}
+
+/* Tooltip Arrow (Optional) */
+.icon-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* Position the arrow below the box */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* State change to show the tooltip on hover (managed by JS, but good practice to define) */
+.styled-icon-box:hover .icon-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.eco-textbox-container:not(:last-child) .variant-default { border-radius: 0; }
+.eco-textbox-container:last-child .variant-default { border-radius: 0 0 8px 8px; }
+
+/* Hover State */
+.eco-textbox-container:not(:last-child) .variant-hover {
+    box-shadow: none !important; 
+    border-bottom: none; 
+}
+.eco-textbox-container:last-child .variant-hover {
+    border-radius: 0 0 8px 8px; 
+}
+
+/* Active State */
+.eco-textbox-container .variant-active {
+    border-radius: 8px !important;
+}
