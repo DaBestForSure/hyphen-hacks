@@ -4,6 +4,12 @@
   "version": "1.0",
   "description": "Extension for local impact awareness",
   
+  "icons": {
+    "16": "images/leafIcon.svg",
+    "48": "images/leafIcon.svg",
+    "128": "images/leafIcon.svg"
+  },
+  
   "permissions": [
     "activeTab",
     "storage"
@@ -22,10 +28,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.nytimes.com/*",
-        "https://www.economist.com/*",
-        "https://www.wsj.com/*",
-        "https://www.washingtonpost.com/*"
+        "<all_urls>"
       ],
       "js": [
         "config.js",
@@ -38,17 +41,12 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "resources/textBox.html",
-        "resources/textBoxStyle.css",
-        "resources/styledIcon.css",
-        "resources/textBoxScript.js",
-        "images/*.svg"
+        "images/leafIcon.svg",
+        "images/*.svg",
+        "resources/*"
       ],
       "matches": [
-        "https://www.nytimes.com/*",
-        "https://www.economist.com/*", 
-        "https://www.wsj.com/*",
-        "https://www.washingtonpost.com/*"
+        "<all_urls>"
       ]
     }
   ]
