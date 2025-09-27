@@ -71,8 +71,11 @@ async function openTextBox() {
         `;
 
         // --- 2. Create and append the Top Bar HTML ---
+        const leafIconUrl = chrome.runtime.getURL("images/leafIcon.svg");
+
         const topBarHTML = `
             <div id="eco-top-bar">
+                <img id="top-bar-icon" src="${leafIconUrl}" alt="Leaf Icon"/>
                 <div id="top-bar-title">Local Impact</div>
                 <div id="top-bar-close">×</div>
             </div>
