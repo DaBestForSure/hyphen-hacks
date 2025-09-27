@@ -234,9 +234,9 @@ const textBoxScriptUrl = chrome.runtime.getURL("resources/textBoxScript.js");
 
 // Define icon URLs the component needs
 const iconUrls = {
-    money: chrome.runtime.getURL("images/money.svg"), 
-    food: chrome.runtime.getURL("images/food.svg"),   
-    globe: chrome.runtime.getURL("images/globe.svg")
+    money: { url: chrome.runtime.getURL("images/money.svg"), description: "Financial Impact" }, 
+    food: { url: chrome.runtime.getURL("images/food.svg"), description: "Food & Shelter" },   
+    globe: { url: chrome.runtime.getURL("images/globe.svg"), description: "Global Reach" }
 };
 
 // Flag to track the state of the component
