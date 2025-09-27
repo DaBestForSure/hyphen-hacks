@@ -1,7 +1,52 @@
-/* --- Base Styles --- */
+/* --- New Global Wrapper Styles --- */
+#eco-main-wrapper {
+    /* Styles are mostly in content.js, but ensure width consistency */
+    width: 350px; 
+}
+
+/* ---------------------------------------------------------------------- */
+/* --- New Top Bar Styles --- */
+/* ---------------------------------------------------------------------- */
+#eco-top-bar {
+    width: 100%;
+    height: 36px;
+    background-color: #000843; /* Match component default color */
+    border-radius: 8px 8px 0 0; /* Rounded corners only at the top */
+    color: white;
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14pt;
+    font-weight: bold;
+    box-sizing: border-box;
+}
+
+#top-bar-close {
+    cursor: pointer;
+    font-size: 18pt;
+    padding: 0 4px; /* Give some click area */
+    line-height: 1; /* Center the 'x' */
+}
+
+/* ---------------------------------------------------------------------- */
+/* --- Base Component Styles (Wrapper & Inner Component) --- */
+/* ---------------------------------------------------------------------- */
+
+/* The containers added in content.js will wrap the #custom-component */
+.eco-textbox-container {
+    width: 100%;
+    /* Crucial: Hide overflow so the component's rounded corners don't show through 
+       at the top/bottom where they shouldn't */
+    overflow: hidden; 
+}
+
+/* Base Styles for the Inner Component */
 #custom-component {
-    width: 350px;
-    border-radius: 8px;
+    width: 100%; /* Take full width of its container */
+    border-radius: 0; /* Remove base border-radius for stacking */
+
+    /* --- ORIGINAL BASE STYLES RE-ADDED --- */
     box-sizing: border-box;
     cursor: pointer;
     display: flex;
@@ -14,9 +59,10 @@
         background-color 0.4s ease, 
         box-shadow 0.4s ease;
     padding: 0 16px; /* Horizontal padding for content */
+    /* -------------------------------------- */
 }
 
-/* Base Text Styles */
+/* Base Text Styles (Keep these in the middle of the CSS) */
 .main-text {
     font-weight: bold;
     color: white;
@@ -36,12 +82,7 @@
     gap: 8px;
     align-items: center;
 }
-.icon-group .icon {
-    width: 14px;
-    height: 14px;
-    background-color: white; /* Placeholder for icons */
-    border-radius: 2px;
-}
+/* Note: The styles for .icon-group .icon should be handled by styledIcon.css now */
 #comp-button {
     background-color: white;
     color: #000843;
@@ -52,6 +93,55 @@
     cursor: pointer;
     margin-top: 8px;
 }
+
+/* ---------------------------------------------------------------------- */
+/* --- Component Stacking Adjustment --- */
+/* ---------------------------------------------------------------------- */
+
+/* This section is perfect as you wrote it. */
+
+.eco-textbox-container:not(:last-child) #custom-component {
+    margin-bottom: 0; 
+    /* Remove bottom border/shadow transition effects */
+    transition: 
+        height 0.4s ease-in-out, 
+        padding 0.4s ease-in-out, 
+        background-color 0.4s ease; /* No box-shadow transition */
+}
+
+
+/* --- Variant Stacking Adjustments --- */
+
+/* Default State: Remove bottom border-radius for non-last components */
+.eco-textbox-container:not(:last-child) .variant-default {
+    border-radius: 0; 
+}
+/* Last Component: Only the bottom of the last component should be rounded */
+.eco-textbox-container:last-child .variant-default {
+    border-radius: 0 0 8px 8px; /* Rounded corners only at the bottom */
+}
+
+
+/* Hover State: Remove bottom shadow for non-last components */
+.eco-textbox-container:not(:last-child) .variant-hover {
+    box-shadow: none !important; /* Remove shadow */
+    border-bottom: none; /* Remove border */
+}
+/* Last Component Hover: Only the last component gets the full shadow/border */
+.eco-textbox-container:last-child .variant-hover {
+    border-radius: 0 0 8px 8px; /* Bottom corners rounded */
+}
+
+/* Active State: Ensures the active component looks self-contained */
+.eco-textbox-container .variant-active {
+    /* Active should always have rounded corners so it appears self-contained */
+    border-radius: 8px !important;
+}
+
+
+/* ---------------------------------------------------------------------- */
+/* --- ORIGINAL VARIANT STYLES (Rest of the file) --- */
+/* ---------------------------------------------------------------------- */
 
 /* --- VARIANT 1: Default (350x50px) --- */
 .variant-default {

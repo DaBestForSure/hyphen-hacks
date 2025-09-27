@@ -1,63 +1,75 @@
-// resources/textBoxScript.js - FINAL (DOM Search Adjustment)
-
 (function() {
 
-    let receivedIconUrls = null;
+    let receivedData = null; // Will hold { iconUrls, componentsData }
 
-    // Listener to receive the iconUrls data from content.js
+    // Listener to receive the full data object from content.js
     window.addEventListener('message', function(event) {
-        // Stop listening after the first message is processed
-        if (event.data.type === 'ECO_TEXTBOX_INIT' && receivedIconUrls === null) {
-            receivedIconUrls = event.data.payload;
-            // Now that we have the data, try to initialize the component
-            safeInitializeComponent();
+        if (event.data.type === 'ECO_TEXTBOX_INIT' && receivedData === null) {
+            receivedData = event.data.payload;
+            // Now that we have the data, try to initialize all components
+            safeInitializeComponents(); // Plural
         }
     });
     
 
     // A robust function to check if the DOM is ready for the script
-    function safeInitializeComponent() {
-        if (!receivedIconUrls) {
+    function safeInitializeComponents() {
+        if (!receivedData) {
             return; 
         }
 
-        // We check if the #custom-component is present in the DOM.
-        // Since we are searching inside the content script's context, 
-        // getElementById is the fastest and safest method.
-        const component = document.getElementById('custom-component');
+        const componentDataList = receivedData.componentsData;
+        let allFound = true;
 
-        if (component) {
-            // The element is found. Proceed with initialization.
-            console.log("#custom-component found! Initializing component logic.");
-            initializeComponentLogic(component);
+        // Check for all three containers to be present
+        componentDataList.forEach(data => {
+            if (!document.getElementById(data.componentId)) {
+                allFound = false;
+            }
+        });
+
+        if (allFound) {
+            // All container elements are found. Proceed with initialization for each.
+            console.log("All component containers found! Initializing component logic.");
+            componentDataList.forEach(data => {
+                const containerEl = document.getElementById(data.componentId);
+                // The component element is the one *inside* the container: #custom-component
+                const component = containerEl.querySelector('#custom-component'); 
+                
+                if (component) {
+                    initializeComponentLogic(component, data);
+                } else {
+                    console.error(`#custom-component not found inside ${data.componentId}`);
+                }
+            });
         } else {
-            // The HTML element is not yet available. Retry.
-            console.warn("#custom-component not found yet, retrying...");
-            setTimeout(safeInitializeComponent, 50); 
+            // Not all elements are available yet. Retry.
+            console.warn("Not all component containers found yet, retrying...");
+            setTimeout(safeInitializeComponents, 50); 
         }
     }
 
-    // ... (The initializeComponentLogic function remains the same as the previous response) ...
-    // Note: It's important that your logic uses the 'component' variable passed to it 
-    // for all subsequent searches (e.g., component.querySelector('#comp-title')).
+    // New signature: takes the component element and its specific data
+    function initializeComponentLogic(component, componentData) {
 
-    function initializeComponentLogic(component) {
+        const receivedIconUrls = receivedData.iconUrls; // Access icon URLs from the global receivedData
 
         const MAX_TITLE_LENGTH = 35;
 
         function truncateTitle(text) {
             if (text.length > MAX_TITLE_LENGTH) {
-                // Cut the text to 35 characters and add ellipsis "..."
                 return text.substring(0, MAX_TITLE_LENGTH) + "...";
             }
             return text;
         }
 
-        // --- Component Inputs ---
+        // --- Component Inputs (Merged with passed data) ---
         const initialInputs = {
-            title: "habitat for humanity",
-            subtext1: "10 miles", 
-            subtext2: "Mission", 
+            // Use the component-specific data passed in
+            title: componentData.title,
+            subtext1: componentData.subtext1 || "N/A", 
+            subtext2: componentData.subtext2 || "N/A", 
+            // Use static/default data for active state/icons for simplicity
             subtextActive: "seeking to put god's love into action, habitat for humanity brings people together to build homes, communities, and hope.", 
             iconList: [
                 { id: 'money', src: receivedIconUrls.money, color: 'white' }, 
@@ -70,8 +82,11 @@
         // Truncate title if too long
         const displayTitle = truncateTitle(initialInputs.title);
 
-        // --- DOM Elements ---
-        // Ensure you use .querySelector on the component passed in, not the document.
+        // --- DOM Elements and Content Injection ---
+        
+        // ... (The rest of the function remains largely the same, using 'component.querySelector' 
+        // and 'initialInputs' to populate the elements as before) ...
+        
         const titleEl = component.querySelector('#comp-title');
         const subtext1DefaultEl = component.querySelector('#comp-subtext-1-default');
         const subtext1HoverActiveEl = component.querySelector('#comp-subtext-1-hover-active');
@@ -88,7 +103,6 @@
         // Inject Icons
         if (iconsEl) {
             iconsEl.innerHTML = initialInputs.iconList.map(item => 
-                // Use the structure of the new styled component:
                 `
                 <div class="styled-icon-box" title="${item.id}">
                     <div class="icon-content">
@@ -99,37 +113,34 @@
             ).join('');
         }
 
-        // --- State Management (rest of your logic remains the same) ---
+        // --- State Management (Hover/Click logic remains the same) ---
         let currentState = 'default'; 
     
         function updateVariant(variant) {
             component.className = '';
             component.classList.add(`variant-${variant}`);
             currentState = variant;
-            console.log(`Component state updated to: ${currentState}`); // Optional: Check state changes
+            // Optional: Check state changes, maybe include component ID for debugging
+            console.log(`${componentData.componentId} state updated to: ${currentState}`); 
         }
         
-        // Set initial state class on the component
         updateVariant('default'); 
 
         // 5. Hover and Click Logic
+        // ... (Hover and Click logic remains the same) ...
         
         // Hover: Switch to hover variant, unless active
         component.addEventListener('mouseenter', () => {
-            // Only change to hover if the component is currently in the 'default' state.
             if (currentState === 'default') {
                 updateVariant('hover');
             }
-            // If it's 'active', leave it 'active'.
         });
 
         // Mouse Leave: Switch back to default, unless active
         component.addEventListener('mouseleave', () => {
-            // Only switch back to default if the component is currently in the 'hover' state.
             if (currentState === 'hover') {
                 updateVariant('default');
             }
-            // If it's 'active', leave it 'active'.
         });
 
         // Click: Toggle between active and default
@@ -141,7 +152,6 @@
             if (currentState === 'active') {
                 updateVariant('default');
             } else {
-                // When clicking to activate, the state will be 'default' or 'hover'.
                 updateVariant('active');
             }
             event.stopPropagation(); 
