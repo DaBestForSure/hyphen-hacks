@@ -1,4 +1,4 @@
-// Enhanced content.js with sentiment analysis and news site detection
+// Enhanced content.js with sentiment analysis, OpenAI, and ProPublica nonprofit search
 // config.js is loaded first, so we can access the global 'config' variable
 
 // 1. Define news sites we care about
@@ -120,7 +120,149 @@ async function analyzeSentiment(text) {
     }
 }
 
-// 6. Analyze both title and content, check multiple conditions
+// 6. NEW: Generate search queries using OpenAI GPT-4o-mini
+async function generateSearchQueries(articleTitle, articleText) {
+    const fullArticle = `${articleTitle}\n\n${articleText}`;
+    
+    const prompt = `Based on this article, provide 5 search terms for finding relevant nonprofit organizations on ProPublica's API. Return ONLY the search terms separated by commas, no explanations, no URLs, no additional text. The terms should be:
+
+1. Very specific to the main issue
+2. Somewhat specific to the main issue  
+3. Related to the geographic region/state if applicable
+4. Broader related topic
+5. Very broad related topic (this should find at least 3 organizations)
+
+For flood/disaster articles, use terms like: "flood relief", "disaster response", "emergency housing", "Florida nonprofits", "disaster recovery"
+
+Article:
+${fullArticle}
+
+Search terms only:`;
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${config.OPENAI_API}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                max_tokens: 100,
+                temperature: 0.3
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`OpenAI API error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const searchQueriesText = data.choices[0].message.content.trim();
+        
+        // Extract the comma-separated queries and clean them
+        const queries = searchQueriesText
+            .split(',')
+            .map(q => q.trim().replace(/"/g, '').replace(/^\d+\.\s*/, '')) // Remove quotes and numbering
+            .filter(q => q.length > 0 && !q.includes('http')); // Filter out URLs and empty strings
+        
+        console.log("Generated search queries:", queries);
+        return queries;
+        
+    } catch (error) {
+        console.error("Error generating search queries with OpenAI:", error);
+        // Fallback queries for flood/disaster articles
+        return [
+            "flood resilience",
+            "disaster recovery", 
+            "Florida housing",
+            "emergency relief",
+            "community development"
+        ];
+    }
+}
+
+// 7. NEW: Search ProPublica API for organizations using background script
+async function searchProPublica(query) {
+    try {
+        // Use Chrome extension messaging to make the API call from background script
+        // This avoids CORS issues
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({
+                type: 'SEARCH_PROPUBLICA',
+                query: query
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Runtime error:', chrome.runtime.lastError);
+                    reject(new Error(chrome.runtime.lastError.message));
+                    return;
+                }
+                
+                if (response && response.success) {
+                    resolve(response.organizations || []);
+                } else {
+                    console.error('ProPublica search failed:', response?.error);
+                    resolve([]);
+                }
+            });
+        });
+        
+    } catch (error) {
+        console.error(`Error searching ProPublica for "${query}":`, error);
+        return [];
+    }
+}
+
+// 8. NEW: Get top 3 organizations using the progressive search strategy
+async function getTopThreeOrganizations(searchQueries) {
+    let allOrganizations = [];
+    
+    for (const query of searchQueries) {
+        console.log(`Searching ProPublica for: "${query}"`);
+        
+        const organizations = await searchProPublica(query);
+        console.log(`Found ${organizations.length} organizations for "${query}"`);
+        
+        if (organizations.length > 0) {
+            // Add organizations that we don't already have (avoid duplicates by EIN)
+            const existingEINs = new Set(allOrganizations.map(org => org.ein));
+            const newOrganizations = organizations.filter(org => !existingEINs.has(org.ein));
+            
+            allOrganizations = allOrganizations.concat(newOrganizations);
+            
+            console.log(`Total unique organizations found so far: ${allOrganizations.length}`);
+            
+            // If we have 3 or more, we can stop
+            if (allOrganizations.length >= 3) {
+                console.log("Found 3+ organizations, stopping search");
+                break;
+            }
+        }
+    }
+    
+    // Return top 3 organizations
+    const topThree = allOrganizations.slice(0, 3);
+    
+    console.log("=== TOP 3 ORGANIZATIONS ===");
+    topThree.forEach((org, index) => {
+        console.log(`${index + 1}. ${org.name}`);
+        console.log(`   EIN: ${org.ein}`);
+        console.log(`   Location: ${org.city}, ${org.state}`);
+        console.log(`   NTEE Code: ${org.ntee_code}`);
+        console.log(`   Score: ${org.score}`);
+        console.log("   ---");
+    });
+    
+    return topThree;
+}
+
+// 9. Analyze both title and content, check multiple conditions
 async function analyzeArticleSentiment(title, articleText) {
     console.log("Analyzing title:", title.substring(0, 100) + "...");
     console.log("Analyzing article text:", articleText.substring(0, 100) + "...");
@@ -178,7 +320,7 @@ async function analyzeArticleSentiment(title, articleText) {
     };
 }
 
-// 7. Main initialization function
+// 10. Main initialization function
 async function initializeExtension() {
     console.log("Current page URL:", window.location.href);
     
@@ -219,7 +361,23 @@ async function initializeExtension() {
     // Show extension if any of the three conditions are met:
     // 1. Title < -0.2, OR 2. Text < -0.2, OR 3. Combined < 0
     if (sentimentResult.shouldShow) {
-        console.log("Negative sentiment detected (title < -0.2 OR text < -0.2 OR combined < 0), showing extension icon");
+        console.log("Negative sentiment detected, showing extension icon");
+        
+        // NEW: Generate search queries and find organizations
+        console.log("Generating search queries with OpenAI...");
+        const searchQueries = await generateSearchQueries(articleTitle, articleText);
+        
+        if (searchQueries.length > 0) {
+            console.log("Searching for relevant organizations...");
+            const topOrganizations = await getTopThreeOrganizations(searchQueries);
+            
+            // Store organizations for later use in the extension
+            window.ecoExtensionOrganizations = topOrganizations;
+        } else {
+            console.log("Could not generate search queries");
+            window.ecoExtensionOrganizations = [];
+        }
+        
         createIcon();
     } else {
         console.log("No negative sentiment conditions met, extension will not show");
@@ -242,7 +400,7 @@ const iconUrls = {
 // Flag to track the state of the component
 let isTextBoxOpen = false;
 
-// 8. Create the fixed icon element
+// 11. Create the fixed icon element
 function createIcon() {
     const container = document.createElement('div');
     container.id = 'eco-extension-icon';
@@ -307,12 +465,34 @@ async function openTextBox() {
         `;
         mainWrapper.innerHTML += topBarHTML;
 
-
         // --- 3. Create and append the three component containers ---
-        const componentsData = [
-            { id: 'comp-1', title: 'Component 1 Data' },
-            { id: 'comp-2', title: 'Component 2 Data' },
-            { id: 'comp-3', title: 'Component 3 Data' }
+        // Use the organizations found by ProPublica, or fallback data
+        const organizations = window.ecoExtensionOrganizations || [];
+        
+        const componentsData = organizations.length >= 3 ? [
+            { 
+                id: 'comp-1', 
+                title: organizations[0].name,
+                subtext1: `${organizations[0].city}, ${organizations[0].state}`,
+                subtext2: "Nonprofit"
+            },
+            { 
+                id: 'comp-2', 
+                title: organizations[1].name,
+                subtext1: `${organizations[1].city}, ${organizations[1].state}`,
+                subtext2: "Nonprofit"
+            },
+            { 
+                id: 'comp-3', 
+                title: organizations[2].name,
+                subtext1: `${organizations[2].city}, ${organizations[2].state}`,
+                subtext2: "Nonprofit"
+            }
+        ] : [
+            // Fallback data if no organizations found
+            { id: 'comp-1', title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission" },
+            { id: 'comp-2', title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation" },
+            { id: 'comp-3', title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event" }
         ];
 
         componentsData.forEach(data => {
@@ -336,7 +516,6 @@ async function openTextBox() {
         }
         
         // B. Inject CSS (as before)
-        // ... (Styles injection remains the same, but you might need to update IDs/variables if you're using the old ones) ...
         const styleLink1 = document.createElement('link');
         styleLink1.rel = 'stylesheet';
         styleLink1.href = textBoxCSSUrl;
@@ -360,20 +539,12 @@ async function openTextBox() {
         document.body.appendChild(script);
 
         // D. Pass data to the newly injected script using postMessage
-        // We now pass the iconUrls AND the data for each of the three components
-        const componentInitialData = [
-            // Dummy data for the three components
-            { componentId: 'comp-1', title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission" },
-            { componentId: 'comp-2', title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation" },
-            { componentId: 'comp-3', title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event" }
-        ];
-        
         setTimeout(() => {
             window.postMessage({
                 type: 'ECO_TEXTBOX_INIT',
                 payload: {
                     iconUrls: iconUrls,
-                    componentsData: componentInitialData
+                    componentsData: componentsData
                 }
             }, '*'); 
 
@@ -397,7 +568,7 @@ function closeTextBox() {
     const container = document.getElementById('eco-main-wrapper');
     if (container) container.remove();
 
-    // ... (Remove CSS and Script as before) ...
+    // Remove CSS and Script
     const style1 = document.getElementById('eco-textbox-style');
     if (style1) style1.remove();
     
@@ -408,7 +579,7 @@ function closeTextBox() {
     if (script) script.remove();
 }
 
-// 9. Initialize everything when the page loads
+// 12. Initialize everything when the page loads
 // Wait for the page to be fully loaded before trying to extract title
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeExtension);

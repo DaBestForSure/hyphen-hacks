@@ -1,28 +1,55 @@
 {
   "manifest_version": 3,
-  "name": "Eco Page Reader",
+  "name": "Eco Extension",
   "version": "1.0",
-  "description": "Reads the current page URL and displays a small icon.",
-  "icons": {
-    "16": "images/leafIcon.svg",
-    "48": "images/leafIcon.svg",
-    "128": "images/leafIcon.svg"
+  "description": "Extension for local impact awareness",
+  
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "https://projects.propublica.org/*",
+    "https://api.openai.com/*",
+    "https://language.googleapis.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
   },
+  
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["config.js", "content.js"],
-      "css": ["contentStyle.css"]
+      "matches": [
+        "https://www.nytimes.com/*",
+        "https://www.economist.com/*",
+        "https://www.wsj.com/*",
+        "https://www.washingtonpost.com/*"
+      ],
+      "js": [
+        "config.js",
+        "content.js"
+      ],
+      "run_at": "document_end"
     }
   ],
+  
   "web_accessible_resources": [
     {
       "resources": [
-        "images/leafIcon.svg",
-        "images/*.svg", 
-        "resources/*"
+        "resources/textBox.html",
+        "resources/textBoxStyle.css",
+        "resources/styledIcon.css",
+        "resources/textBoxScript.js",
+        "images/*.svg"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "https://www.nytimes.com/*",
+        "https://www.economist.com/*", 
+        "https://www.wsj.com/*",
+        "https://www.washingtonpost.com/*"
+      ]
     }
   ]
 }
