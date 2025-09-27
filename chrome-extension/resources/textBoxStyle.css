@@ -2,6 +2,10 @@
 #eco-main-wrapper {
     /* Styles are mostly in content.js, but ensure width consistency */
     width: 350px; 
+    background-color: #000843; 
+    padding: 4px; /* Internal padding to create a gap around the stack */
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5); /* A subtle shadow for depth */
+    border-radius: 8px;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -15,11 +19,28 @@
     color: white;
     padding: 0 16px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    /* CHANGE: Align items back to center for visual balance */
+    align-items: center; 
+    /* CHANGE: Use a specific gap or push elements apart */
+    justify-content: space-between; 
     font-size: 14pt;
     font-weight: bold;
     box-sizing: border-box;
+}
+
+#top-bar-icon {
+    /* Set icon size */
+    width: 24px;
+    height: 24px;
+    /* Make the icon white (assuming it's a black SVG) */
+    filter: brightness(0) invert(1); 
+    /* Add a little space between the icon and the title */
+    margin-right: 8px; 
+}
+
+#top-bar-title {
+    /* Push the title and the close button to the ends */
+    flex-grow: 1; /* Allows the title to take up remaining space */
 }
 
 #top-bar-close {
@@ -27,6 +48,7 @@
     font-size: 18pt;
     padding: 0 4px; /* Give some click area */
     line-height: 1; /* Center the 'x' */
+    margin-left: 10px; /* Space between title and close button */
 }
 
 /* ---------------------------------------------------------------------- */
@@ -44,7 +66,7 @@
 /* Base Styles for the Inner Component */
 #custom-component {
     width: 100%; /* Take full width of its container */
-    border-radius: 0; /* Remove base border-radius for stacking */
+    border-radius: 0 8px 8px 0; 
 
     /* --- ORIGINAL BASE STYLES RE-ADDED --- */
     box-sizing: border-box;
@@ -114,11 +136,11 @@
 
 /* Default State: Remove bottom border-radius for non-last components */
 .eco-textbox-container:not(:last-child) .variant-default {
-    border-radius: 0; 
+    border-radius: 0 8px 8px 0; 
 }
 /* Last Component: Only the bottom of the last component should be rounded */
 .eco-textbox-container:last-child .variant-default {
-    border-radius: 0 0 8px 8px; /* Rounded corners only at the bottom */
+    border-radius: 0 8px 8px 0; /* Rounded corners only at the bottom */
 }
 
 
@@ -129,13 +151,13 @@
 }
 /* Last Component Hover: Only the last component gets the full shadow/border */
 .eco-textbox-container:last-child .variant-hover {
-    border-radius: 0 0 8px 8px; /* Bottom corners rounded */
+    border-radius: 0 8px 8px 0; /* Bottom corners rounded */
 }
 
 /* Active State: Ensures the active component looks self-contained */
 .eco-textbox-container .variant-active {
     /* Active should always have rounded corners so it appears self-contained */
-    border-radius: 8px !important;
+    border-radius: 0 8px 8px 0 !important;
 }
 
 
@@ -255,3 +277,4 @@
     align-self: flex-end; /* Align button to the bottom right */
     margin-top: auto; /* Push to the bottom */
 }
+
