@@ -1,0 +1,38 @@
+#eco-extension-icon {
+    /* Positioning */
+    position: fixed;
+    bottom: 20px; /* Example distance from bottom */
+    right: 20px; /* Example distance from right */
+    z-index: 9999; /* Ensure it's on top of the page content */
+    
+    /* Color: 000843 */
+    background-color: #000843; 
+    
+    /* Size: hug contents (adjust padding as needed) */
+    /* Since you want it to 'hug contents', use padding around the SVG */
+    padding: 10px; 
+    
+    /* Shape and Cursor */
+    border-radius: 50%; /* Makes it circular */
+    cursor: pointer;
+    
+    /* Dropshadow: x=2, y=2, blur=4, color: 000000 25% opacity */
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.25);
+    
+    /* Optional: Transition for the 'click change' effect */
+    transition: all 0.2s ease-in-out;
+}
+
+/* Style for the SVG inside the container */
+#eco-extension-icon img {
+    /* Set a size for the image/svg content */
+    width: 24px; 
+    height: 24px;
+    display: block;
+}
+
+/* Example of a 'variant change' on click */
+#eco-extension-icon.variant-active {
+    background-color: #0056b3; /* A different color for the active state */
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* A different shadow */
+}

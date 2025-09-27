@@ -1,0 +1,162 @@
+/* --- Base Styles --- */
+#custom-component {
+    width: 350px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden; /* For rounded corners */
+    transition: 
+        height 0.3s ease, 
+        background-color 0.3s ease, 
+        box-shadow 0.3s ease;
+    padding: 0 16px; /* Horizontal padding for content */
+}
+
+/* Base Text Styles */
+.main-text {
+    font-weight: bold;
+    color: white;
+}
+.main-text-group {
+    display: flex;
+    flex-direction: column;
+}
+.content-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+.icon-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.icon-group .icon {
+    width: 14px;
+    height: 14px;
+    background-color: white; /* Placeholder for icons */
+    border-radius: 2px;
+}
+#comp-button {
+    background-color: white;
+    color: #000843;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10pt;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+/* --- VARIANT 1: Default (350x50px) --- */
+.variant-default {
+    height: 50px;
+    background-color: #000843;
+}
+.variant-default .main-text {
+    font-size: 14pt;
+}
+.variant-default .subtext-1-default {
+    font-size: 10pt;
+    color: white;
+}
+.variant-default .subtext-2,
+.variant-default .subtext-1-hover-active,
+.variant-default .large-subtext,
+.variant-default #comp-button {
+    display: none; /* Hide hover/active specific elements */
+}
+
+
+/* --- VARIANT 2: Hover (350x66px) --- */
+.variant-hover {
+    height: 66px;
+    background-color: #192472;
+    /* Stroke: white, 0.2px, no left stroke */
+    border-top: 0.2px solid white;
+    border-right: 0.2px solid white;
+    border-bottom: 0.2px solid white;
+    border-left: none; 
+    /* Drop Shadow: blur 8, spread 8, white 30% opacity */
+    box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
+}
+.variant-hover .main-text {
+    font-size: 14pt;
+}
+.variant-hover .subtext-1-default {
+    display: none; /* Hide default subtext */
+}
+.variant-hover .subtext-2 {
+    display: block; /* Show new title subtext */
+    font-size: 12pt;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 2px;
+}
+.variant-hover .subtext-1-hover-active {
+    display: block; /* Show subtext under icons */
+    font-size: 10pt;
+    color: white;
+    margin-top: 4px;
+}
+.variant-hover .large-subtext,
+.variant-hover #comp-button {
+    display: none; /* Hide active-only elements */
+}
+
+
+/* --- VARIANT 3: Active/Click (350x190px) --- */
+.variant-active {
+    height: 190px;
+    background-color: #192472;
+    /* Stroke: white, 0.2px, no left stroke */
+    border-top: 0.2px solid white;
+    border-right: 0.2px solid white;
+    border-bottom: 0.2px solid white;
+    border-left: none;
+    /* Drop Shadow: blur 8, spread 8, white 30% opacity */
+    box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
+    align-items: flex-start; /* Align content to the top */
+    padding-top: 16px; 
+    padding-bottom: 16px;
+    flex-direction: column; /* Stack content vertically */
+    justify-content: flex-start;
+}
+.variant-active .content-left,
+.variant-active .content-right {
+    width: 100%; /* Take full width of the container */
+}
+.variant-active .content-right {
+    flex-direction: row; /* Icons and subtext next to each other */
+    justify-content: flex-end; /* Push icons to the right */
+}
+.variant-active .main-text {
+    font-size: 18pt;
+}
+.variant-active .subtext-1-default {
+    display: none;
+}
+.variant-active .subtext-2 {
+    display: block; /* Show subtext under title */
+    font-size: 12pt;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 2px;
+}
+.variant-active .large-subtext {
+    display: block; /* Show large subtext */
+    font-size: 12pt;
+    color: white;
+    margin-top: 16px;
+    flex-grow: 1; /* Push button to the bottom */
+}
+.variant-active .subtext-1-hover-active {
+    display: none; /* Hide small subtext under icons */
+}
+.variant-active #comp-button {
+    display: block; /* Show button */
+    align-self: flex-end; /* Align button to the bottom right */
+    margin-top: auto; /* Push to the bottom */
+}

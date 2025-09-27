@@ -1,25 +1,24 @@
 {
-  "name": "Hello Extensions",
-  "description": "Base Level Extension",
-  "version": "1.0",
   "manifest_version": 3,
-  "action": {
-    "default_popup": "hello.html"
-    // "default_icon": "hello_extensions.png"
-  },
+  "name": "Eco Page Reader",
+  "version": "1.0",
+  "description": "Reads the current page URL and displays a small icon.",
   "icons": {
-    "16": "images/icon-16.png",
-    "32": "images/icon-32.png",
-    "48": "images/icon-48.png",
-    "128": "images/icon-128.png"
+    "16": "images/leafIcon.svg",
+    "48": "images/leafIcon.svg",
+    "128": "images/leafIcon.svg"
   },
-  "content_scripts": [ 
+  "content_scripts": [
     {
-      "js": ["scripts/content.js"],
-      "matches": [ //places where script will run
-        "https://developer.chrome.com/docs/extensions/*",
-        "https://developer.chrome.com/docs/webstore/*"
-      ]
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["style.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["images/leafIcon.svg"],
+      "matches": ["<all_urls>"]
     }
   ]
 }
