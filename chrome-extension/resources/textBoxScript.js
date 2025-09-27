@@ -66,7 +66,7 @@
         // 4. Initial Content Setup
         if (titleEl) titleEl.textContent = initialInputs.title;
         if (subtext1DefaultEl) subtext1DefaultEl.textContent = initialInputs.subtext1;
-        if (subtext1HoverActiveEl) subtext1HoverActiveL.textContent = initialInputs.subtext1;
+        if (subtext1HoverActiveEl) subtext1HoverActiveEl.textContent = initialInputs.subtext1;
         if (subtext2El) subtext2El.textContent = initialInputs.subtext2;
         if (largeSubtextEl) largeSubtextEl.textContent = initialInputs.subtextActive;
 
@@ -79,36 +79,47 @@
 
         // --- State Management (rest of your logic remains the same) ---
         let currentState = 'default'; 
-        
+    
         function updateVariant(variant) {
             component.className = '';
             component.classList.add(`variant-${variant}`);
             currentState = variant;
+            console.log(`Component state updated to: ${currentState}`); // Optional: Check state changes
         }
+        
+        // Set initial state class on the component
+        updateVariant('default'); 
 
         // 5. Hover and Click Logic
         
+        // Hover: Switch to hover variant, unless active
         component.addEventListener('mouseenter', () => {
-            if (currentState !== 'active') {
+            // Only change to hover if the component is currently in the 'default' state.
+            if (currentState === 'default') {
                 updateVariant('hover');
             }
+            // If it's 'active', leave it 'active'.
         });
 
+        // Mouse Leave: Switch back to default, unless active
         component.addEventListener('mouseleave', () => {
-            if (currentState !== 'active') {
+            // Only switch back to default if the component is currently in the 'hover' state.
+            if (currentState === 'hover') {
                 updateVariant('default');
             }
+            // If it's 'active', leave it 'active'.
         });
 
+        // Click: Toggle between active and default
         component.addEventListener('click', (event) => {
             if (event.target.id === 'comp-button') {
-                console.log("Button in Active variant clicked!");
                 return;
             }
             
             if (currentState === 'active') {
                 updateVariant('default');
             } else {
+                // When clicking to activate, the state will be 'default' or 'hover'.
                 updateVariant('active');
             }
             event.stopPropagation(); 
