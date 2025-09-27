@@ -6,6 +6,13 @@ const textBoxHTMLUrl = chrome.runtime.getURL("resources/textBox.html");
 const textBoxCSSUrl = chrome.runtime.getURL("resources/textBoxStyle.css");
 const textBoxScriptUrl = chrome.runtime.getURL("resources/textBoxScript.js");
 
+// Define icon URLs the component needs
+const iconUrls = {
+    attach: chrome.runtime.getURL("images/attach_money_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg"),
+    borg: chrome.runtime.getURL("images/borg_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg"),
+    globe: chrome.runtime.getURL("images/globe_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg")
+};
+
 // Flag to track the state of the component
 let isTextBoxOpen = false;
 
@@ -40,52 +47,58 @@ async function openTextBox() {
     console.log("Icon clicked! Opening the textBox component.");
     isTextBoxOpen = true;
 
-    // A. Fetch and Inject HTML
     try {
-        const response = await fetch(textBoxHTMLUrl);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const html = await response.text();
+        // A. Fetch and Inject HTML (as before)
+        const htmlResponse = await fetch(textBoxHTMLUrl);
+        const html = await htmlResponse.text();
         
         const textBoxContainer = document.createElement('div');
-        textBoxContainer.id = 'eco-textbox-wrapper'; // Unique ID for wrapper
+        textBoxContainer.id = 'eco-textbox-wrapper'; 
         textBoxContainer.style.cssText = `
             position: fixed;
-            bottom: 80px; /* Position it above the icon */
+            bottom: 80px; 
             right: 20px;
-            z-index: 9998; /* Below the icon, but above page content */
+            z-index: 9998;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
         `;
+        // Inject the HTML string, which contains the #custom-component
         textBoxContainer.innerHTML = html;
         document.body.appendChild(textBoxContainer);
 
-        // B. Inject CSS
+        // B. Inject CSS (as before)
         const styleLink = document.createElement('link');
         styleLink.rel = 'stylesheet';
         styleLink.href = textBoxCSSUrl;
         styleLink.id = 'eco-textbox-style';
         document.head.appendChild(styleLink);
-
-        // C. Inject and Run JavaScript
+        
+        // C. Inject JavaScript (The secure way - using src)
         const script = document.createElement('script');
         script.src = textBoxScriptUrl;
         script.id = 'eco-textbox-script';
-        
-        script.onload = () => {
-            // Make the container visible after everything is loaded
-            textBoxContainer.style.visibility = 'visible';
-        };
-        
         document.body.appendChild(script);
+
+        // D. Pass data to the newly injected script using postMessage
+        // CRITICAL CHANGE: Use a small delay (0ms) to ensure the script tag is processed 
+        // and the HTML is fully parsed before sending the message.
+        setTimeout(() => {
+            window.postMessage({
+                type: 'ECO_TEXTBOX_INIT',
+                payload: iconUrls
+            }, '*'); 
+
+            // Make it visible after sending the message
+            textBoxContainer.style.opacity = '1';
+            textBoxContainer.style.transform = 'translateY(0)';
+        }, 0); 
 
     } catch (error) {
         console.error("Error loading textBox component:", error);
-        isTextBoxOpen = false; // Reset flag on failure
+        isTextBoxOpen = false;
     }
 }
-
 // Function to handle closing the component
 function closeTextBox() {
     console.log("Closing the textBox component.");
