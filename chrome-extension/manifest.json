@@ -24,8 +24,5 @@
       ],
       "matches": ["<all_urls>"]
     }
-  ],
-  "permissions": [
-    "https://language.googleapis.com/*"
   ]
 }

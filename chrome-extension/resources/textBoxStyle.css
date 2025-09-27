@@ -225,34 +225,63 @@
 
 /* --- VARIANT 3: Active/Click (350x190px) --- */
 .variant-active {
-    /* padding: 16px 16px; */
     height: 190px;
     background-color: #192472;
-    padding: 16px 16px; 
+    padding: 16px !important; 
+    
+    /* ADDED: Explicitly set display to flex */
+    display: flex; 
+
     /* Stroke: white, 0.2px, no left stroke */
     border-top: 0.2px solid white;
     border-right: 0.2px solid white;
     border-bottom: 0.2px solid white;
     border-left: none;
+
     /* Drop Shadow: blur 8, spread 8, white 30% opacity */
-    /* box-shadow: 0 0 4px 4px rgba(255, 255, 255, 0.3); */
-    align-items: flex-start; /* Align content to the top */
-    padding-top: 16px !important; 
-    /* padding-bottom: 16px; */
-    flex-direction: column; /* Stack content vertically */
-    justify-content: flex-start;
-    border-radius: 0 8px 8px 0 !important; 
+    box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
+    
+    /* Align content to the TOP (flex-start) */
+    align-items: flex-start; 
+    
+    flex-direction: row; 
+    justify-content: space-between; 
 }
-.variant-active .content-left,
+
+.variant-active .content-left {
+    width: 75%; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: flex-start; 
+    align-items: flex-start; 
+}
+
 .variant-active .content-right {
-    width: 100%; /* Take full width of the container */
+    width: 25%; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: space-between; 
+    align-items: flex-end; 
+    height: 100%; 
+    padding-top: 0; 
 }
-.variant-active .content-right {
-    flex-direction: row; /* Icons and subtext next to each other */
-    justify-content: flex-end; /* Push icons to the right */
+
+.variant-active .icon-group {
+    display: flex;
+    justify-content: flex-end; 
+    align-self: flex-end; 
+    margin-bottom: 8px;
 }
+
+/* 5. Ensure the button is pushed to the bottom right */
+.variant-active #comp-button {
+    display: block; 
+    margin-top: auto; /* 'auto' margin pushes the element to the bottom when in a column */
+    align-self: flex-end; 
+}
+
 .variant-active .main-text {
-    font-size: 18pt;
+    font-size: 14pt;
 }
 .variant-active .subtext-1-default {
     display: none;
@@ -263,6 +292,7 @@
     color: rgba(255, 255, 255, 0.8);
     margin-top: 2px;
 }
+
 .variant-active .large-subtext {
     display: block; /* Show large subtext */
     font-size: 12pt;
@@ -273,11 +303,13 @@
 .variant-active .subtext-1-hover-active {
     display: none; /* Hide small subtext under icons */
 }
-.variant-active #comp-button {
-    display: block; /* Show button */
-    align-self: flex-end; /* Align button to the bottom right */
-    margin-top: auto; /* Push to the bottom */
+
+/* 6. Clean up unnecessary overrides */
+.variant-active .subtext-1-hover-active {
+    display: none; /* Hide small subtext under icons */
 }
+
+
 
 .styled-icon-box {
     /* Crucial for positioning the tooltip relative to the icon box */
