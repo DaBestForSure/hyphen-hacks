@@ -77,9 +77,13 @@
     /* overflow: hidden; For rounded corners */
     transition: 
         height 0.4s ease-in-out, 
-        padding 0.4s ease-in-out, /* Added padding for a smoother look */
+        padding 0.4s ease-in-out, 
         background-color 0.4s ease, 
-        box-shadow 0.4s ease;
+        box-shadow 0.4s ease,
+        /* NEW: Border transition snaps in after 0.4s */
+        border-width 0.01s linear 0.4s, 
+        border-color 0.01s linear 0.4s,
+        border-style 0.01s linear 0.4s;
     padding: 0 16px; /* Horizontal padding for content */
     /* -------------------------------------- */
 }
@@ -92,7 +96,16 @@
 .main-text-group {
     display: flex;
     flex-direction: column;
+    /* FIX: Add overflow hidden so sliding text is clipped */
+    overflow: hidden;
 }
+
+/* NEW: Global transition for the sliding subtext elements */
+.subtext-1-default, 
+.subtext-1-hover-active {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
 .content-right {
     display: flex;
     flex-direction: column;
@@ -170,6 +183,8 @@
     height: 66px;
     background-color: #000843;
     padding: 0 16px;
+    /* NEW: Explicitly set border width to 0 for transition start point */
+    border-width: 0; 
 }
 .variant-default .main-text {
     font-size: 14pt;
@@ -177,12 +192,22 @@
 .variant-default .subtext-1-default {
     font-size: 10pt;
     color: white;
+    /* NEW: Start position (visible) */
+    opacity: 1;
+    transform: translateY(0);
 }
 .variant-default .subtext-2,
-.variant-default .subtext-1-hover-active,
 .variant-default .large-subtext,
 .variant-default #comp-button {
+    /* FIX: Removed .subtext-1-hover-active from this list to enable transition */
     display: none; /* Hide hover/active specific elements */
+}
+
+/* NEW: Hide the hover subtext and position it below for slide-in start */
+.variant-default .subtext-1-hover-active {
+    display: block; /* Must be block/flex/etc for transition to work */
+    transform: translateY(10px); /* Start 10px below final position */
+    opacity: 0;
 }
 
 
@@ -203,7 +228,11 @@
     font-size: 14pt;
 }
 .variant-hover .subtext-1-default {
-    display: none; /* Hide default subtext */
+    /* NEW: Slide out position */
+    transform: translateY(-10px); /* Slide 10px up */
+    opacity: 0;
+    /* Keep block display for transition */
+    display: block; 
 }
 .variant-hover .subtext-2 {
     display: block; /* Show new title subtext */
@@ -212,10 +241,13 @@
     margin-top: 2px;
 }
 .variant-hover .subtext-1-hover-active {
+    /* NEW: Slide in position (final position) */
     display: block; /* Show subtext under icons */
     font-size: 10pt;
     color: white;
     margin-top: 4px;
+    transform: translateY(0); /* Final position */
+    opacity: 1;
 }
 .variant-hover .large-subtext,
 .variant-hover #comp-button {
@@ -284,7 +316,10 @@
     font-size: 14pt;
 }
 .variant-active .subtext-1-default {
-    display: none;
+    /* We keep the slide-out position here to be safe, though this element should be hidden 
+       when variant-active is applied. */
+    transform: translateY(-10px);
+    opacity: 0;
 }
 .variant-active .subtext-2 {
     display: block; /* Show subtext under title */
