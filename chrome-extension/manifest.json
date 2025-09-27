@@ -12,12 +12,18 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "css": ["style.css"]
+      "css": ["contentStyle.css"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["images/leafIcon.svg"],
+      "resources": [
+        "images/leafIcon.svg",
+        "images/*.svg", 
+        "resources/textBox.html",
+        "resources/textBoxScript.js",
+        "resources/textBoxStyle.css"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
