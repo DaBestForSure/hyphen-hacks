@@ -110,6 +110,7 @@
 
 /* --- VARIANT 3: Active/Click (350x190px) --- */
 .variant-active {
+    padding: 16px 16px;
     height: 190px;
     background-color: #192472;
     /* Stroke: white, 0.2px, no left stroke */
@@ -120,8 +121,8 @@
     /* Drop Shadow: blur 8, spread 8, white 30% opacity */
     box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
     align-items: flex-start; /* Align content to the top */
-    padding-top: 16px; 
-    padding-bottom: 16px;
+    /* padding-top: 16px; 
+    padding-bottom: 16px; */
     flex-direction: column; /* Stack content vertically */
     justify-content: flex-start;
 }

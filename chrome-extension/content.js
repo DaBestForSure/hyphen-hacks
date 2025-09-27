@@ -4,13 +4,14 @@ console.log("Current page URL:", window.location.href);
 // Define component URLs from web_accessible_resources
 const textBoxHTMLUrl = chrome.runtime.getURL("resources/textBox.html");
 const textBoxCSSUrl = chrome.runtime.getURL("resources/textBoxStyle.css");
+const styledIconCSSUrl = chrome.runtime.getURL("resources/styledIcon.css"); 
 const textBoxScriptUrl = chrome.runtime.getURL("resources/textBoxScript.js");
 
 // Define icon URLs the component needs
 const iconUrls = {
-    attach: chrome.runtime.getURL("images/attach_money_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg"),
-    borg: chrome.runtime.getURL("images/borg_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg"),
-    globe: chrome.runtime.getURL("images/globe_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg")
+    money: chrome.runtime.getURL("images/money.svg"), 
+    food: chrome.runtime.getURL("images/food.svg"),   
+    globe: chrome.runtime.getURL("images/globe.svg")
 };
 
 // Flag to track the state of the component
@@ -68,12 +69,23 @@ async function openTextBox() {
         document.body.appendChild(textBoxContainer);
 
         // B. Inject CSS (as before)
-        const styleLink = document.createElement('link');
-        styleLink.rel = 'stylesheet';
-        styleLink.href = textBoxCSSUrl;
-        styleLink.id = 'eco-textbox-style';
-        document.head.appendChild(styleLink);
-        
+        const styleLink1 = document.createElement('link');
+        styleLink1.rel = 'stylesheet';
+        styleLink1.href = textBoxCSSUrl;
+        styleLink1.id = 'eco-textbox-style';
+        document.head.appendChild(styleLink1);
+
+        // Inject the new styled icon CSS
+        const styleLink2 = document.createElement('link');
+        styleLink2.rel = 'stylesheet';
+        styleLink2.href = styledIconCSSUrl; // <-- Inject the new CSS
+        styleLink2.id = 'eco-styled-icon-style';
+        document.head.appendChild(styleLink2);
+
+        // Wait for CSS to ensure the initial size/position is correct before running JS
+        await new Promise(resolve => styleLink1.onload = resolve);
+        await new Promise(resolve => styleLink2.onload = resolve);
+
         // C. Inject JavaScript (The secure way - using src)
         const script = document.createElement('script');
         script.src = textBoxScriptUrl;

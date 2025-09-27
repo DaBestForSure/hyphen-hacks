@@ -1,0 +1,47 @@
+/* --- Component Box Styling --- */
+.styled-icon-box {
+    /* Container Background and Shape */
+    background-color: #101C5E;
+    border-radius: 3px;
+    
+    /* White Stroke with 30% Opacity */
+    border: 1px solid rgba(255, 255, 255, 0.3); 
+    
+    /* Drop Shadow: x=0, y=0, blur 4, spread 2, color white 10% opacity */
+    box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.1);
+    
+    /* Centering the SVG content */
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Minimal padding around the icon content */
+    padding: 4px; 
+    
+    /* Ensure sizing is manageable */
+    box-sizing: border-box;
+}
+
+/* --- SVG Content Styling --- */
+.styled-icon-box .icon-content {
+    /* Scale the SVG content inside the container */
+    width: 16px;
+    height: 16px;
+    
+    /* Ensures SVGs fill the 16x16 box */
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+}
+
+/* Target the SVG or <img> tag directly placed inside the content area */
+.styled-icon-box .icon-content svg,
+.styled-icon-box .icon-content img {
+    /* Scale to the parent's size (16px) */
+    width: 100%; 
+    height: 100%;
+    
+    /* Color the SVG white. 
+       This CSS trick (filter) works on most modern browsers for monochrome SVGs. */
+    filter: brightness(0) invert(1);
+}

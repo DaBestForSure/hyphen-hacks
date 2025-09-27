@@ -20,9 +20,10 @@
       "resources": [
         "images/leafIcon.svg",
         "images/*.svg", 
-        "resources/textBox.html",
-        "resources/textBoxScript.js",
-        "resources/textBoxStyle.css"
+        // "resources/textBox.html",
+        // "resources/textBoxScript.js",
+        // "resources/textBoxStyle.css",
+        "resources/*"
       ],
       "matches": ["<all_urls>"]
     }

@@ -13,6 +13,7 @@
             safeInitializeComponent();
         }
     });
+    
 
     // A robust function to check if the DOM is ready for the script
     function safeInitializeComponent() {
@@ -26,7 +27,7 @@
         const component = document.getElementById('custom-component');
 
         if (component) {
-            // SUCCESS! The element is found. Proceed with initialization.
+            // The element is found. Proceed with initialization.
             console.log("#custom-component found! Initializing component logic.");
             initializeComponentLogic(component);
         } else {
@@ -41,18 +42,33 @@
     // for all subsequent searches (e.g., component.querySelector('#comp-title')).
 
     function initializeComponentLogic(component) {
+
+        const MAX_TITLE_LENGTH = 35;
+
+        function truncateTitle(text) {
+            if (text.length > MAX_TITLE_LENGTH) {
+                // Cut the text to 35 characters and add ellipsis "..."
+                return text.substring(0, MAX_TITLE_LENGTH) + "...";
+            }
+            return text;
+        }
+
         // --- Component Inputs ---
         const initialInputs = {
-            title: "Project Alpha Launch",
-            subtext1: "Due on October 25th", 
-            subtext2: "Marketing Strategy - Q4", 
-            subtextActive: "Phase I analysis complete. Awaiting final feedback from stakeholders. Next steps involve API integration.", 
+            title: "habitat for humanity",
+            subtext1: "10 miles", 
+            subtext2: "Mission", 
+            subtextActive: "seeking to put god's love into action, habitat for humanity brings people together to build homes, communities, and hope.", 
             iconList: [
-                { id: 'money', src: receivedIconUrls.attach, color: 'white' }, 
-                { id: 'borg', src: receivedIconUrls.borg, color: 'white' },
+                { id: 'money', src: receivedIconUrls.money, color: 'white' }, 
+                { id: 'food', src: receivedIconUrls.food, color: 'white' },
                 { id: 'globe', src: receivedIconUrls.globe, color: 'white' }
-            ]
+            ],
+            charityURL: "hhtps:"
         };
+
+        // Truncate title if too long
+        const displayTitle = truncateTitle(initialInputs.title);
 
         // --- DOM Elements ---
         // Ensure you use .querySelector on the component passed in, not the document.
@@ -63,8 +79,7 @@
         const largeSubtextEl = component.querySelector('#comp-large-subtext');
         const iconsEl = component.querySelector('#comp-icons');
         
-        // 4. Initial Content Setup
-        if (titleEl) titleEl.textContent = initialInputs.title;
+        if (titleEl) titleEl.textContent = displayTitle; 
         if (subtext1DefaultEl) subtext1DefaultEl.textContent = initialInputs.subtext1;
         if (subtext1HoverActiveEl) subtext1HoverActiveEl.textContent = initialInputs.subtext1;
         if (subtext2El) subtext2El.textContent = initialInputs.subtext2;
@@ -73,7 +88,14 @@
         // Inject Icons
         if (iconsEl) {
             iconsEl.innerHTML = initialInputs.iconList.map(item => 
-                `<img src="${item.src}" class="icon" title="${item.id}" style="filter: brightness(0) invert(1);" />`
+                // Use the structure of the new styled component:
+                `
+                <div class="styled-icon-box" title="${item.id}">
+                    <div class="icon-content">
+                        <img src="${item.src}" alt="${item.id}" />
+                    </div>
+                </div>
+                `
             ).join('');
         }
 
