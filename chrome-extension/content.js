@@ -5,15 +5,10 @@
 console.log("🌱 ECO EXTENSION: Starting with all features...");
 
 /* ==============================
-   1) Site detection (unchanged)
+   1) Site detection
    ============================== */
 
-const NEWS_SITES = [
-  "nytimes.com",
-  "economist.com",
-  "wsj.com",
-  "washingtonpost.com",
-];
+const NEWS_SITES = ["nytimes.com", "economist.com", "wsj.com", "washingtonpost.com"];
 
 function isOnNewsSite() {
   const currentDomain = window.location.hostname.replace("www.", "");
@@ -32,10 +27,9 @@ function extractArticleTitle() {
     'h1[class*="headline"]', // Any h1 with "headline" in class
     'h1[class*="title"]', // Any h1 with "title" in class
     "article h1", // H1 inside article tag
-    ".article-title", // Generic article title class
-    "h1", // Fallback to any h1
+    ".article-title", // Generic
+    "h1", // Fallback
   ];
-
   for (const selector of selectors) {
     const el = document.querySelector(selector);
     if (el && el.textContent.trim()) return el.textContent.trim();
@@ -46,18 +40,16 @@ function extractArticleTitle() {
 function extractArticleText() {
   const contentSelectors = [
     'section[name="articleBody"]', // NYTimes
-    ".article-body", // Common
-    ".story-body", // Common
-    'div[data-testid="articleBody"]', // Some sites
-    "article .content", // Generic
-    "article p", // Paragraphs in article
-    ".post-content", // Blogs
-    "main article", // Main article content
-    '[role="main"] p', // Accessible main content
+    ".article-body",
+    ".story-body",
+    'div[data-testid="articleBody"]',
+    "article .content",
+    "article p",
+    ".post-content",
+    "main article",
+    '[role="main"] p',
   ];
-
   let articleText = "";
-
   for (const selector of contentSelectors) {
     const el = document.querySelector(selector);
     if (!el) continue;
@@ -84,11 +76,7 @@ function extractArticleText() {
 
     if (articleText && articleText.length > 100) break;
   }
-
-  if (articleText.length > 3000) {
-    articleText = articleText.substring(0, 3000) + "...";
-  }
-
+  if (articleText.length > 3000) articleText = articleText.substring(0, 3000) + "...";
   return articleText;
 }
 
@@ -100,20 +88,10 @@ async function analyzeSentiment(text) {
   if (typeof config === "undefined" || !config.GOOGLE_API) {
     console.log("🌱 ECO EXTENSION: No Google API key, using keyword fallback");
     const negativeWords = [
-      "crisis",
-      "disaster",
-      "death",
-      "fire",
-      "flood",
-      "war",
-      "attack",
-      "tragedy",
-      "terrible",
-      "awful",
+      "crisis", "disaster", "death", "fire", "flood", "war",
+      "attack", "tragedy", "terrible", "awful",
     ];
-    const hasNegative = negativeWords.some((w) =>
-      text.toLowerCase().includes(w)
-    );
+    const hasNegative = negativeWords.some((w) => text.toLowerCase().includes(w));
     return { score: hasNegative ? -0.3 : 0.1 };
   }
 
@@ -123,9 +101,7 @@ async function analyzeSentiment(text) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          document: { type: "PLAIN_TEXT", content: text },
-        }),
+        body: JSON.stringify({ document: { type: "PLAIN_TEXT", content: text } }),
       }
     );
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -134,42 +110,25 @@ async function analyzeSentiment(text) {
   } catch (err) {
     console.error("🌱 ECO EXTENSION: Sentiment analysis error:", err);
     const negativeWords = [
-      "crisis",
-      "disaster",
-      "death",
-      "fire",
-      "flood",
-      "war",
-      "attack",
-      "tragedy",
-      "terrible",
-      "awful",
+      "crisis", "disaster", "death", "fire", "flood", "war",
+      "attack", "tragedy", "terrible", "awful",
     ];
-    const hasNegative = negativeWords.some((w) =>
-      text.toLowerCase().includes(w)
-    );
+    const hasNegative = negativeWords.some((w) => text.toLowerCase().includes(w));
     return { score: hasNegative ? -0.3 : 0.1 };
   }
 }
 
 /* ===========================================
-   4) OpenAI search-term generation (unchanged)
+   4) OpenAI search-term generation
    =========================================== */
 
 async function generateSearchQueries(articleTitle, articleText) {
   if (typeof config === "undefined" || !config.OPENAI_API_KEY) {
     console.log("🌱 ECO EXTENSION: No OpenAI API key, using fallback queries");
-    return [
-      "disaster relief",
-      "community support",
-      "emergency assistance",
-      "local nonprofit",
-      "charity organization",
-    ];
+    return ["disaster relief", "community support", "emergency assistance", "local nonprofit", "charity organization"];
   }
 
   const fullArticle = `${articleTitle}\n\n${articleText}`;
-
   const prompt = `Based on this article, provide 5 search terms for finding relevant nonprofit organizations on ProPublica's API. Return ONLY the search terms separated by commas, no explanations, no URLs, no additional text. The terms should be:
 
 1. Very specific to the main issue
@@ -188,10 +147,7 @@ Search terms only:`;
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.OPENAI_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.OPENAI_API_KEY}` },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
@@ -199,30 +155,15 @@ Search terms only:`;
         temperature: 0.3,
       }),
     });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error! status: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`OpenAI API error! status: ${response.status}`);
     const data = await response.json();
-    const searchQueriesText = data.choices[0].message.content.trim();
-
-    const queries = searchQueriesText
-      .split(",")
-      .map((q) => q.trim().replace(/"/g, "").replace(/^\d+\.\s*/, ""))
-      .filter((q) => q.length > 0 && !q.includes("http"));
-
+    const text = data.choices[0].message.content.trim();
+    const queries = text.split(",").map((q) => q.trim().replace(/"/g, "").replace(/^\d+\.\s*/, "")).filter((q) => q && !q.includes("http"));
     console.log("🌱 ECO EXTENSION: Generated search queries:", queries);
     return queries;
   } catch (error) {
     console.error("🌱 ECO EXTENSION: OpenAI error:", error);
-    return [
-      "disaster relief",
-      "community support",
-      "emergency assistance",
-      "local nonprofit",
-      "charity organization",
-    ];
+    return ["disaster relief", "community support", "emergency assistance", "local nonprofit", "charity organization"];
   }
 }
 
@@ -234,36 +175,23 @@ Search terms only:`;
 async function searchProPublica(query, limit = 10) {
   try {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(
-        { type: "SEARCH_PROPUBLICA", query, limit },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            console.error(
-              "🌱 ECO EXTENSION: Runtime error:",
-              chrome.runtime.lastError
-            );
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-
-          if (response && response.success) {
-            const orgs = response.organizations || [];
-            resolve(orgs.slice(0, limit));
-          } else {
-            console.error(
-              "🌱 ECO EXTENSION: ProPublica search failed:",
-              response?.error
-            );
-            resolve([]);
-          }
+      chrome.runtime.sendMessage({ type: "SEARCH_PROPUBLICA", query, limit }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error("🌱 ECO EXTENSION: Runtime error:", chrome.runtime.lastError);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
         }
-      );
+        if (response && response.success) {
+          const orgs = response.organizations || [];
+          resolve(orgs.slice(0, limit));
+        } else {
+          console.error("🌱 ECO EXTENSION: ProPublica search failed:", response?.error);
+          resolve([]);
+        }
+      });
     });
   } catch (error) {
-    console.error(
-      `🌱 ECO EXTENSION: Error searching ProPublica for "${query}":`,
-      error
-    );
+    console.error(`🌱 ECO EXTENSION: Error searching ProPublica for "${query}":`, error);
     return [];
   }
 }
@@ -272,12 +200,26 @@ async function searchProPublica(query, limit = 10) {
    6) Website finding (Google CSE + MapQuest fallback)
    ================================================ */
 
+function isPdfUrl(url) {
+  if (!url) return false;
+  const u = String(url).toLowerCase();
+  // reject .pdf anywhere at end or before query/hash
+  return /\.(pdf)(\?|#|$)/i.test(u);
+}
+function isCauseIQ(url) {
+  if (!url) return false;
+  try {
+    const { hostname } = new URL(url);
+    const host = hostname.toLowerCase().replace(/^www\./, "");
+    return host === "causeiq.com" || host.endsWith(".causeiq.com");
+  } catch {
+    // Fallback for malformed URLs
+    return /(^|\/\/|\.)causeiq\.com/i.test(String(url));
+  }
+}
+
 async function findOfficialWebsite(orgName, orgCity, orgState) {
-  if (
-    typeof config === "undefined" ||
-    !config.GOOGLE_API ||
-    !config.SEARCH_ENGINE_ID
-  ) {
+  if (typeof config === "undefined" || !config.GOOGLE_API || !config.SEARCH_ENGINE_ID) {
     console.log("🌱 ECO EXTENSION: No Google Search API credentials");
     return null;
   }
@@ -285,36 +227,27 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
   try {
     const addressInfo = orgCity && orgState ? `${orgCity} ${orgState}` : "";
     const query = `"${orgName}" ${addressInfo} official site donate volunteer`;
-
-    // More coverage
     const response = await fetch(
       `https://www.googleapis.com/customsearch/v1?key=${config.GOOGLE_API}&cx=${config.SEARCH_ENGINE_ID}&q=${encodeURIComponent(
         query
       )}&num=10`
     );
-
-    if (!response.ok) {
-      throw new Error(`Search API error! status: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Search API error! status: ${response.status}`);
 
     const data = await response.json();
     const items = data.items || [];
+    console.log(`🌱 ECO EXTENSION: Found ${items.length} search results for "${orgName}" ${addressInfo}`);
 
-    console.log(
-      `🌱 ECO EXTENSION: Found ${items.length} search results for "${orgName}" ${addressInfo}`
-    );
-
-    // Prefer .org domains
+    // Prefer .org
     for (const item of items) {
-      if (item.link.includes(".org") && isRelevantDomainRelaxed(item.link, orgName)) {
+      if (item.link.includes(".org") && !isPdfUrl(item.link) && !isCauseIQ(item.link) && isRelevantDomainRelaxed(item.link, orgName)) {
         console.log(`🌱 ECO EXTENSION: Found .org website: ${item.link}`);
         return item.link;
       }
     }
-
     // Then .com
     for (const item of items) {
-      if (item.link.includes(".com") && isRelevantDomainRelaxed(item.link, orgName)) {
+      if (item.link.includes(".com") && !isPdfUrl(item.link) && isRelevantDomainRelaxed(item.link, orgName)) {
         console.log(`🌱 ECO EXTENSION: Found .com website: ${item.link}`);
         return item.link;
       }
@@ -323,9 +256,9 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
     // MapQuest fallback
     if (typeof config.MAPQUEST_API_KEY !== "undefined") {
       const mapquestQuery = `${orgName} ${orgCity || ""} ${orgState || ""}`.trim();
-      const mapquestUrl = `https://www.mapquestapi.com/search/v2/search?key=${
-        config.MAPQUEST_API_KEY
-      }&q=${encodeURIComponent(mapquestQuery)}&pageSize=1`;
+      const mapquestUrl = `https://www.mapquestapi.com/search/v2/search?key=${config.MAPQUEST_API_KEY}&q=${encodeURIComponent(
+        mapquestQuery
+      )}&pageSize=1`;
 
       try {
         const mqResponse = await fetch(mapquestUrl);
@@ -333,10 +266,8 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
           const mqData = await mqResponse.json();
           if (mqData.results && mqData.results.length > 0) {
             const fields = mqData.results[0].fields || {};
-            if (fields.website && isLegitimateNonprofit(fields.website)) {
-              console.log(
-                `🌱 ECO EXTENSION: MapQuest fallback found URL: ${fields.website}`
-              );
+            if (fields.website && !isPdfUrl(fields.website) && isLegitimateNonprofit(fields.website)) {
+              console.log(`🌱 ECO EXTENSION: MapQuest fallback found URL: ${fields.website}`);
               return fields.website;
             }
           }
@@ -367,9 +298,7 @@ function isRelevantDomainRelaxed(url, orgName) {
   const hasMatchingWords = orgWords.some((w) => domain.includes(w.substring(0, 4)));
 
   const domainParts = domain.split(".")[0].split(/[^a-z]/);
-  const domainHasOrgWords = domainParts.some(
-    (part) => part.length > 3 && cleanOrgName.includes(part)
-  );
+  const domainHasOrgWords = domainParts.some((part) => part.length > 3 && cleanOrgName.includes(part));
 
   return hasMatchingWords || domainHasOrgWords;
 }
@@ -377,20 +306,11 @@ function isRelevantDomainRelaxed(url, orgName) {
 function isLegitimateNonprofit(url) {
   const domain = url.toLowerCase();
   const excluded = [
-    "facebook.com",
-    "twitter.com",
-    "instagram.com",
-    "linkedin.com",
-    "youtube.com",
-    "tiktok.com",
-    "amazon.com",
-    "ebay.com",
-    "wikipedia.org",
-    "crunchbase.com",
-    "bloomberg.com",
+    "facebook.com", "twitter.com", "instagram.com", "linkedin.com",
+    "youtube.com", "tiktok.com", "amazon.com", "ebay.com",
+    "wikipedia.org", "crunchbase.com", "bloomberg.com",
   ];
   if (excluded.some((e) => domain.includes(e))) return false;
-
   const good = [".org", "donate", "volunteer", "charity", "foundation", "nonprofit"];
   return good.some((g) => domain.includes(g));
 }
@@ -407,22 +327,19 @@ async function getOrganizationWebsite(orgName, ein, orgCity, orgState) {
 
 async function getOrgDetailsByEIN(ein) {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage(
-      { type: "GET_ORG_DETAILS", ein: String(ein) },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          console.error("🌱 ECO EXTENSION: BG message error:", chrome.runtime.lastError);
-          resolve(null);
-          return;
-        }
-        if (response && response.success && response.data) {
-          resolve(response.data);
-        } else {
-          console.warn("🌱 ECO EXTENSION: BG fetch failed for EIN", ein, response?.error);
-          resolve(null);
-        }
+    chrome.runtime.sendMessage({ type: "GET_ORG_DETAILS", ein: String(ein) }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error("🌱 ECO EXTENSION: BG message error:", chrome.runtime.lastError);
+        resolve(null);
+        return;
       }
-    );
+      if (response && response.success && response.data) {
+        resolve(response.data);
+      } else {
+        console.warn("🌱 ECO EXTENSION: BG fetch failed for EIN", ein, response?.error);
+        resolve(null);
+      }
+    });
   });
 }
 
@@ -446,7 +363,15 @@ function computeImpactScoreFromFiling(filing) {
 }
 
 /* ==================================================================================
-   8) Get top 3 orgs across multiple queries, factoring websites + impact + coverage
+   8) Get top 3 orgs across multiple queries (lazy website lookups)
+      - Gather up to 20 EINs across queries.
+      - Compute impact scores (no website lookups yet).
+      - Sort by impact (with slight early-query boost).
+      - Walk the sorted list top-down:
+          * Lookup websites until we’ve found 3 orgs with websites.
+          * If we reach 3, STOP doing website lookups (per your request).
+          * If fewer than 3 found, fill remaining slots with highest-impact orgs (website=null).
+      - Reject any website that is a PDF.
    ================================================================================== */
 
 async function getTopThreeOrganizations(searchQueries) {
@@ -456,12 +381,11 @@ async function getTopThreeOrganizations(searchQueries) {
   const seenEIN = new Set();
   const candidates = [];
 
-  // 1) Collect up to 20 unique EINs across queries, preserving query order index
+  // 1) Collect up to 20 unique EINs across queries, preserving which query found them
   for (let qIndex = 0; qIndex < searchQueries.length; qIndex++) {
     const query = searchQueries[qIndex];
     console.log(`🌱 ECO EXTENSION: Searching ProPublica for: "${query}"`);
 
-    // request up to the remaining capacity this round, but background may cap too
     const remaining = MAX_UNIQUE - candidates.length;
     if (remaining <= 0) break;
 
@@ -482,9 +406,9 @@ async function getTopThreeOrganizations(searchQueries) {
     return [];
   }
 
-  console.log(`🌱 ECO EXTENSION: Evaluating ${candidates.length} candidates for impact + websites...`);
+  console.log(`🌱 ECO EXTENSION: Evaluating ${candidates.length} candidates (impact only)...`);
 
-  // 2) For each candidate: get details, impact score, attempt website early
+  // 2) For each candidate: get details + impact score (NO website lookups yet)
   const evaluated = [];
   for (let i = 0; i < candidates.length; i++) {
     const c = candidates[i];
@@ -496,13 +420,7 @@ async function getTopThreeOrganizations(searchQueries) {
     if (!latest) continue;
 
     const baseImpact = computeImpactScoreFromFiling(latest);
-
-    // Small preference for earlier queries (very light)
-    const earlyBoost = 0.25 * (Math.max(0, (searchQueries.length - 1 - c._queryIndex)));
-
-    // Attempt website now so we can prioritize orgs with sites later
-    const siteBundle = await getOrganizationWebsite(c.name || c.sub_name || "", c.ein, c.city, c.state);
-    const websiteUrl = siteBundle?.website || null;
+    const earlyBoost = 0.25 * Math.max(0, (searchQueries.length - 1 - c._queryIndex));
 
     evaluated.push({
       ein: c.ein,
@@ -517,8 +435,7 @@ async function getTopThreeOrganizations(searchQueries) {
         totassetsend: latest.totassetsend || 0,
         totcntrbgfts: latest.totcntrbgfts || 0,
       },
-      website: websiteUrl,
-      _filings: filings,
+      website: null, // will fill lazily
     });
   }
 
@@ -530,20 +447,38 @@ async function getTopThreeOrganizations(searchQueries) {
   // 3) Sort by impactScore desc
   evaluated.sort((a, b) => b.impactScore - a.impactScore);
 
-  // 4) Prefer orgs with websites, then fill to 3 with null-site orgs
-  const withSites = evaluated.filter((o) => !!o.website).slice(0, 3);
+  // 4) Walk sorted list; do website lookups UNTIL we have 3 with websites; then stop looking up
+  const withSites = [];
+  const noSiteYet = [];
+  for (const org of evaluated) {
+    if (withSites.length < 3) {
+      const siteBundle = await getOrganizationWebsite(org.name, org.ein, org.city, org.state);
+      const websiteUrl = siteBundle?.website || null;
+      if (websiteUrl && !isPdfUrl(websiteUrl)) {
+        org.website = websiteUrl;
+        withSites.push(org);
+      } else {
+        org.website = null;
+        noSiteYet.push(org);
+      }
+    } else {
+      // Already have 3 with websites → no more lookups (per requirement)
+      break;
+    }
+  }
+
+  // If we already have 3 with websites, return them
   if (withSites.length === 3) return withSites;
 
+  // Otherwise, fill remaining slots with highest-impact orgs without websites (no extra lookups)
   const need = 3 - withSites.length;
-  const withoutSites = evaluated.filter((o) => !o.website).slice(0, need);
-  const topThree = [...withSites, ...withoutSites];
-
-  // Always exactly 3
-  return topThree.slice(0, 3);
+  const filler = noSiteYet.slice(0, need).map((o) => ({ ...o, website: null }));
+  const topThree = [...withSites, ...filler].slice(0, 3);
+  return topThree;
 }
 
 /* ======================================
-   9) Sentiment gating (unchanged logic)
+   9) Sentiment gating
    ====================================== */
 
 async function analyzeArticleSentiment(title, articleText) {
@@ -552,8 +487,7 @@ async function analyzeArticleSentiment(title, articleText) {
   const titleSentiment = await analyzeSentiment(title);
   if (!titleSentiment) {
     return { shouldShow: false, titleScore: null, textScore: null, combinedScore: null };
-  }
-
+    }
   console.log("🌱 ECO EXTENSION: Title sentiment score:", titleSentiment.score);
 
   let textSentiment = null;
@@ -568,7 +502,7 @@ async function analyzeArticleSentiment(title, articleText) {
     }
   }
 
-  // Relaxed thresholds: show if negative or even slightly non-positive
+  // Relaxed thresholds
   const titleIsNegative = titleSentiment.score < -0.1;
   const textIsNegative = textSentiment && textSentiment.score < -0.1;
   const combinedIsNegative = combinedScore < 0.1;
@@ -625,9 +559,7 @@ async function initializeExtension() {
     }
 
     if (!topOrganizations || topOrganizations.length < 3) {
-      console.log(
-        "🌱 ECO EXTENSION: Impact-scored selection returned <3 orgs; using empty list so UI falls back."
-      );
+      console.log("🌱 ECO EXTENSION: Impact-scored selection returned <3 orgs; using empty list so UI falls back.");
       window.ecoExtensionOrganizations = [];
     } else {
       window.ecoExtensionOrganizations = topOrganizations.slice(0, 3);
@@ -640,7 +572,7 @@ async function initializeExtension() {
 }
 
 /* =================================
-   11) UI (icon + panel) - unchanged
+   11) UI (icon + panel)
    ================================= */
 
 const textBoxHTMLUrl = chrome.runtime.getURL("resources/textBox.html");
@@ -676,12 +608,8 @@ function createIcon() {
     transition: transform 0.2s ease;
   `;
 
-  container.addEventListener("mouseenter", () => {
-    container.style.transform = "scale(1.1)";
-  });
-  container.addEventListener("mouseleave", () => {
-    container.style.transform = "scale(1)";
-  });
+  container.addEventListener("mouseenter", () => { container.style.transform = "scale(1.1)"; });
+  container.addEventListener("mouseleave", () => { container.style.transform = "scale(1)"; });
 
   try {
     const svgURL = chrome.runtime.getURL("images/leafIcon.svg");
@@ -752,46 +680,23 @@ async function openTextBox() {
             supportURL: org.website || "#",
           }))
         : [
-            {
-              componentId: "comp-1",
-              title: "Habitat for Humanity",
-              subtext1: "10 miles",
-              subtext2: "Mission",
-              supportURL: "https://www.habitat.org",
-            },
-            {
-              componentId: "comp-2",
-              title: "Local Food Bank Drive",
-              subtext1: "5 miles",
-              subtext2: "Donation",
-              supportURL: "https://www.feedingamerica.org",
-            },
-            {
-              componentId: "comp-3",
-              title: "Park Cleanup Event for Earth Day",
-              subtext1: "15 miles",
-              subtext2: "Event",
-              supportURL: "https://www.earthday.org",
-            },
+            { componentId: "comp-1", title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission", supportURL: "https://www.habitat.org" },
+            { componentId: "comp-2", title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation", supportURL: "https://www.feedingamerica.org" },
+            { componentId: "comp-3", title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event", supportURL: "https://www.earthday.org" },
           ];
 
     if (organizations.length > 0) {
       console.log("🌱 ECO EXTENSION: Using impact-scored organizations:");
       organizations.forEach((org, idx) => {
-        console.log(
-          `${idx + 1}. ${org.name} - ${org.city}, ${org.state} (EIN: ${org.ein})`
-        );
-        console.log(
-          `   ImpactScore: ${
-            org.impactScore?.toFixed ? org.impactScore.toFixed(2) : org.impactScore
-          }`
-        );
+        console.log(`${idx + 1}. ${org.name} - ${org.city}, ${org.state} (EIN: ${org.ein})`);
+        console.log(`   ImpactScore: ${org.impactScore?.toFixed ? org.impactScore.toFixed(2) : org.impactScore}`);
         console.log(`   Website: ${org.website}`);
       });
     } else {
       console.log("🌱 ECO EXTENSION: No organizations found, using fallback data");
     }
 
+    // Mount 3 cards
     componentsData.forEach((data) => {
       const box = document.createElement("div");
       box.id = data.componentId;
@@ -803,9 +708,7 @@ async function openTextBox() {
     document.body.appendChild(mainWrapper);
 
     const closeButton = document.getElementById("top-bar-close");
-    if (closeButton) {
-      closeButton.addEventListener("click", closeTextBox);
-    }
+    if (closeButton) closeButton.addEventListener("click", closeTextBox);
 
     const styleLink1 = document.createElement("link");
     styleLink1.rel = "stylesheet";
@@ -829,16 +732,9 @@ async function openTextBox() {
 
     setTimeout(() => {
       window.postMessage(
-        {
-          type: "ECO_TEXTBOX_INIT",
-          payload: {
-            iconUrls: iconUrls,
-            componentsData: componentsData,
-          },
-        },
+        { type: "ECO_TEXTBOX_INIT", payload: { iconUrls, componentsData } },
         "*"
       );
-
       mainWrapper.style.opacity = "1";
       mainWrapper.style.transform = "translateY(0)";
     }, 50);
