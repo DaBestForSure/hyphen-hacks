@@ -1,411 +1,318 @@
-/* --- New Global Wrapper Styles --- */
 #eco-main-wrapper {
-    /* Styles are mostly in content.js, but ensure width consistency */
-    width: 350px; 
-    background-color: #000843; 
-    padding: 0 15px 10px 0px; /* Internal padding to create a gap around the stack */
-    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5); /* A subtle shadow for depth */
-    border-radius: 8px;
+width: 350px;
+background-color: #000843;
+padding: 0 15px 10px 0;
+box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+border-radius: 8px;
 }
 
-/* ---------------------------------------------------------------------- */
-/* --- New Top Bar Styles --- */
-/* ---------------------------------------------------------------------- */
 #eco-top-bar {
-    width: 100%;
-    height: 36px;
-    background-color: #000843; /* Match component default color */
-    border-radius: 8px 8px 0 0; /* Rounded corners only at the top */
-    color: white;
-    padding: 0 16px;
-    display: flex;
-    /* CHANGE: Align items back to center for visual balance */
-    align-items: center; 
-    /* CHANGE: Use a specific gap or push elements apart */
-    justify-content: space-between; 
-    font-size: 14pt;
-    font-weight: bold;
-    box-sizing: border-box;
+width: 100%;
+height: 36px;
+background-color: #000843;
+border-radius: 8px 8px 0 0;
+color: white;
+padding: 0 16px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+font-size: 14pt;
+font-weight: bold;
+box-sizing: border-box;
 }
 
 #top-bar-icon {
-    /* Set icon size */
-    width: 24px;
-    height: 24px;
-    /* Make the icon white (assuming it's a black SVG) */
-    filter: brightness(0) invert(1); 
-    /* Add a little space between the icon and the title */
-    margin-right: 8px; 
+width: 24px;
+height: 24px;
+filter: brightness(0) invert(1);
+margin-right: 8px;
 }
 
 #top-bar-title {
-    /* Push the title and the close button to the ends */
-    flex-grow: 1; /* Allows the title to take up remaining space */
+flex-grow: 1;
 }
 
 #top-bar-close {
-    cursor: pointer;
-    font-size: 18pt;
-    padding: 0 4px; /* Give some click area */
-    line-height: 1; /* Center the 'x' */
-    margin-left: 10px; /* Space between title and close button */
+cursor: pointer;
+font-size: 18pt;
+padding: 0 4px;
+line-height: 1;
+margin-left: 10px;
 }
 
-/* ---------------------------------------------------------------------- */
-/* --- Base Component Styles (Wrapper & Inner Component) --- */
-/* ---------------------------------------------------------------------- */
-
-/* The containers added in content.js will wrap the #custom-component */
 .eco-textbox-container {
-    width: 100%;
-    /* Crucial: Hide overflow so the component's rounded corners don't show through 
-       at the top/bottom where they shouldn't */
-    /* overflow: hidden;  */
+width: 100%;
 }
 
-/* Base Styles for the Inner Component */
 #custom-component {
-    width: 100%; /* Take full width of its container */
-    border-radius: 0 8px 8px 0; 
-
-    /* --- ORIGINAL BASE STYLES RE-ADDED --- */
-    box-sizing: border-box;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    /* overflow: hidden; For rounded corners */
-    transition: 
-        height 0.4s ease-in-out, 
-        padding 0.4s ease-in-out, 
-        background-color 0.4s ease, 
-        box-shadow 0.4s ease,
-        /* NEW: Border transition snaps in after 0.4s */
-        border-width 0.01s linear 0.4s, 
-        border-color 0.01s linear 0.4s,
-        border-style 0.01s linear 0.4s;
-    padding: 0 16px; /* Horizontal padding for content */
-    /* -------------------------------------- */
+width: 100%;
+border-radius: 0 8px 8px 0;
+box-sizing: border-box;
+cursor: pointer;
+display: flex;
+justify-content: space-between;
+align-items: center;
+transition:
+height 0.4s ease-in-out,
+padding 0.4s ease-in-out,
+background-color 0.4s ease,
+box-shadow 0.4s ease,
+border-width 0.01s linear 0.4s,
+border-color 0.01s linear 0.4s,
+border-style 0.01s linear 0.4s;
+padding: 0 16px;
 }
 
-/* Base Text Styles (Keep these in the middle of the CSS) */
 .main-text {
-    font-weight: bold;
-    color: white;
-}
-.main-text-group {
-    display: flex;
-    flex-direction: column;
-    /* FIX: Add overflow hidden so sliding text is clipped */
-    overflow: hidden;
+font-weight: bold;
+color: white;
 }
 
-/* NEW: Global transition for the sliding subtext elements */
-.subtext-1-default, 
+.main-text-group {
+display: flex;
+flex-direction: column;
+overflow: hidden;
+}
+
+.subtext-1-default,
 .subtext-1-hover-active {
-    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
 .content-right {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
+display: flex;
+flex-direction: column;
+align-items: flex-end;
+gap: 4px;
 }
+
 .icon-group {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+display: flex;
+gap: 8px;
+align-items: center;
 }
-/* Note: The styles for .icon-group .icon should be handled by styledIcon.css now */
+
 #comp-button {
-    background-color: white;
-    color: #000843;
-    border: none;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10pt;
-    cursor: pointer;
-    margin-top: 8px;
+background-color: white;
+color: #000843;
+border: none;
+padding: 4px 8px;
+border-radius: 4px;
+font-size: 10pt;
+cursor: pointer;
+margin-top: 8px;
 }
-
-/* ---------------------------------------------------------------------- */
-/* --- Component Stacking Adjustment --- */
-/* ---------------------------------------------------------------------- */
-
-/* This section is perfect as you wrote it. */
 
 .eco-textbox-container:not(:last-child) #custom-component {
-    margin-bottom: 0; 
-    /* Remove bottom border/shadow transition effects */
-    transition: 
-        height 0.4s ease-in-out, 
-        padding 0.4s ease-in-out, 
-        background-color 0.4s ease; /* No box-shadow transition */
+margin-bottom: 0;
+transition:
+height 0.4s ease-in-out,
+padding 0.4s ease-in-out,
+background-color 0.4s ease;
 }
 
-
-/* --- Variant Stacking Adjustments --- */
-
-/* Default State: Remove bottom border-radius for non-last components */
 .eco-textbox-container:not(:last-child) .variant-default {
-    border-radius: 0 8px 8px 0; 
+border-radius: 0 8px 8px 0;
 }
-/* Last Component: Only the bottom of the last component should be rounded */
 .eco-textbox-container:last-child .variant-default {
-    border-radius: 0 8px 8px 0; /* Rounded corners only at the bottom */
+border-radius: 0 8px 8px 0;
 }
 
-
-/* Hover State: Remove bottom shadow for non-last components */
 .eco-textbox-container:not(:last-child) .variant-hover {
-    box-shadow: none !important; /* Remove shadow */
-    border-bottom: none; /* Remove border */
+box-shadow: none !important;
+border-bottom: none;
 }
-/* Last Component Hover: Only the last component gets the full shadow/border */
 .eco-textbox-container:last-child .variant-hover {
-    border-radius: 0 8px 8px 0; /* Bottom corners rounded */
+border-radius: 0 8px 8px 0;
 }
 
-/* Active State: Ensures the active component looks self-contained */
 .eco-textbox-container .variant-active {
-    /* Active should always have rounded corners so it appears self-contained */
-    border-radius: 0 8px 8px 0 !important;
+border-radius: 0 8px 8px 0 !important;
 }
 
-
-/* ---------------------------------------------------------------------- */
-/* --- ORIGINAL VARIANT STYLES (Rest of the file) --- */
-/* ---------------------------------------------------------------------- */
-
-/* --- VARIANT 1: Default (350x50px) --- */
 .variant-default {
-    height: 66px;
-    background-color: #000843;
-    padding: 0 16px;
-    /* NEW: Explicitly set border width to 0 for transition start point */
-    border-width: 0; 
+height: 66px;
+background-color: #000843;
+padding: 0 16px;
+border-width: 0;
 }
 .variant-default .main-text {
-    font-size: 14pt;
+font-size: 14pt;
 }
 .variant-default .subtext-1-default {
-    font-size: 10pt;
-    color: white;
-    /* NEW: Start position (visible) */
-    opacity: 1;
-    transform: translateY(0);
+font-size: 10pt;
+color: white;
+opacity: 1;
+transform: translateY(0);
 }
 .variant-default .subtext-2,
 .variant-default .large-subtext,
 .variant-default #comp-button {
-    /* FIX: Removed .subtext-1-hover-active from this list to enable transition */
-    display: none; /* Hide hover/active specific elements */
+display: none;
 }
-
-/* NEW: Hide the hover subtext and position it below for slide-in start */
 .variant-default .subtext-1-hover-active {
-    display: block; /* Must be block/flex/etc for transition to work */
-    transform: translateY(10px); /* Start 10px below final position */
-    opacity: 0;
+display: block;
+transform: translateY(10px);
+opacity: 0;
 }
 
-
-/* --- VARIANT 2: Hover (350x66px) --- */
 .variant-hover {
-    height: 66px;
-    background-color: #192472;
-    /* Stroke: white, 0.2px, no left stroke */
-    border-top: 0.2px solid white;
-    border-right: 0.2px solid white;
-    border-bottom: 0.2px solid white;
-    border-left: none; 
-    /* Drop Shadow: blur 8, spread 8, white 30% opacity */
-    box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
-    padding: 0 16px;
+height: 66px;
+background-color: #192472;
+border-top: 0.2px solid white;
+border-right: 0.2px solid white;
+border-bottom: 0.2px solid white;
+border-left: none;
+box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
+padding: 0 16px;
 }
 .variant-hover .main-text {
-    font-size: 14pt;
+font-size: 14pt;
 }
 .variant-hover .subtext-1-default {
-    /* NEW: Slide out position */
-    transform: translateY(-10px); /* Slide 10px up */
-    opacity: 0;
-    /* Keep block display for transition */
-    display: block; 
+transform: translateY(-10px);
+opacity: 0;
+display: block;
 }
 .variant-hover .subtext-2 {
-    display: block; /* Show new title subtext */
-    font-size: 12pt;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 2px;
+display: block;
+font-size: 12pt;
+color: rgba(255, 255, 255, 0.8);
+margin-top: 2px;
 }
 .variant-hover .subtext-1-hover-active {
-    /* NEW: Slide in position (final position) */
-    display: block; /* Show subtext under icons */
-    font-size: 10pt;
-    color: white;
-    margin-top: 4px;
-    transform: translateY(0); /* Final position */
-    opacity: 1;
+display: block;
+font-size: 10pt;
+color: white;
+margin-top: 4px;
+transform: translateY(0);
+opacity: 1;
 }
 .variant-hover .large-subtext,
 .variant-hover #comp-button {
-    display: none; /* Hide active-only elements */
+display: none;
 }
 
-
-/* --- VARIANT 3: Active/Click (350x190px) --- */
 .variant-active {
-    height: 190px;
-    background-color: #192472;
-    padding: 16px !important; 
-    
-    /* ADDED: Explicitly set display to flex */
-    display: flex; 
-
-    /* Stroke: white, 0.2px, no left stroke */
-    border-top: 0.2px solid white;
-    border-right: 0.2px solid white;
-    border-bottom: 0.2px solid white;
-    border-left: none;
-
-    /* Drop Shadow: blur 8, spread 8, white 30% opacity */
-    box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
-    
-    /* Align content to the TOP (flex-start) */
-    align-items: flex-start; 
-    
-    flex-direction: row; 
-    justify-content: space-between; 
+height: 190px;
+background-color: #192472;
+padding: 16px !important;
+display: flex;
+border-top: 0.2px solid white;
+border-right: 0.2px solid white;
+border-bottom: 0.2px solid white;
+border-left: none;
+box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
+align-items: flex-start;
+flex-direction: row;
+justify-content: space-between;
 }
 
 .variant-active .content-left {
-    width: 75%; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: flex-start; 
-    align-items: flex-start; 
+width: 75%;
+display: flex;
+flex-direction: column;
+justify-content: flex-start;
+align-items: flex-start;
 }
 
 .variant-active .content-right {
-    width: 25%; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-between; 
-    align-items: flex-end; 
-    height: 100%; 
-    padding-top: 0; 
+width: 25%;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+align-items: flex-end;
+height: 100%;
+padding-top: 0;
 }
 
 .variant-active .icon-group {
-    display: flex;
-    justify-content: flex-end; 
-    align-self: flex-end; 
-    margin-bottom: 8px;
+display: flex;
+justify-content: flex-end;
+align-self: flex-end;
+margin-bottom: 8px;
 }
 
-/* 5. Ensure the button is pushed to the bottom right */
 .variant-active #comp-button {
-    display: block; 
-    margin-top: auto; /* 'auto' margin pushes the element to the bottom when in a column */
-    align-self: flex-end; 
+display: block;
+margin-top: auto;
+align-self: flex-end;
 }
 
 .variant-active .main-text {
-    font-size: 14pt;
+font-size: 14pt;
 }
 .variant-active .subtext-1-default {
-    /* We keep the slide-out position here to be safe, though this element should be hidden 
-       when variant-active is applied. */
-    transform: translateY(-10px);
-    opacity: 0;
+transform: translateY(-10px);
+opacity: 0;
 }
 .variant-active .subtext-2 {
-    display: block; /* Show subtext under title */
-    font-size: 12pt;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 2px;
+display: block;
+font-size: 12pt;
+color: rgba(255, 255, 255, 0.8);
+margin-top: 2px;
 }
-
 .variant-active .large-subtext {
-    display: block; /* Show large subtext */
-    font-size: 12pt;
-    color: white;
-    margin-top: 16px;
-    flex-grow: 1; /* Push button to the bottom */
+display: block;
+font-size: 12pt;
+color: white;
+margin-top: 16px;
+flex-grow: 1;
 }
 .variant-active .subtext-1-hover-active {
-    display: none; /* Hide small subtext under icons */
+display: none;
 }
-
-/* 6. Clean up unnecessary overrides */
-.variant-active .subtext-1-hover-active {
-    display: none; /* Hide small subtext under icons */
-}
-
-
 
 .styled-icon-box {
-    /* Crucial for positioning the tooltip relative to the icon box */
-    position: relative; 
-    z-index: 100; 
+position: relative;
+z-index: 100;
 }
 
 .icon-tooltip {
-    /* Tooltip styling */
-    position: absolute;
-    bottom: calc(100% + 8px); /* Position 8px above the icon box */
-    left: 50%;
-    transform: translateX(-50%); /* Center */
-    white-space: nowrap; 
-    background-color: #333;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10pt;
-    
-    /* CRITICAL FIX: Ensure high z-index and visibility */
-    z-index: 99999; /* Very high z-index to break out of component bounds */
-    pointer-events: none;
-    
-    /* Animation and initial state */
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s, visibility 0.2s;
+position: absolute;
+bottom: calc(100% + 8px);
+left: 50%;
+transform: translateX(-50%);
+white-space: nowrap;
+background-color: #333;
+color: white;
+padding: 4px 8px;
+border-radius: 4px;
+font-size: 10pt;
+z-index: 99999;
+pointer-events: none;
+opacity: 0;
+visibility: hidden;
+transition: opacity 0.2s, visibility 0.2s;
 }
 
-/* Tooltip Arrow (Optional) */
 .icon-tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%; /* Position the arrow below the box */
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
+content: "";
+position: absolute;
+top: 100%;
+left: 50%;
+margin-left: -5px;
+border-width: 5px;
+border-style: solid;
+border-color: #333 transparent transparent transparent;
 }
 
-/* State change to show the tooltip on hover (managed by JS, but good practice to define) */
 .styled-icon-box:hover .icon-tooltip {
-    opacity: 1;
-    visibility: visible;
+opacity: 1;
+visibility: visible;
 }
 
 .eco-textbox-container:not(:last-child) .variant-default { border-radius: 0; }
 .eco-textbox-container:last-child .variant-default { border-radius: 0 0 8px 8px; }
 
-/* Hover State */
 .eco-textbox-container:not(:last-child) .variant-hover {
-    box-shadow: none !important; 
-    border-bottom: none; 
+box-shadow: none !important;
+border-bottom: none;
 }
 .eco-textbox-container:last-child .variant-hover {
-    border-radius: 0 0 8px 8px; 
+border-radius: 0 0 8px 8px;
 }
 
-/* Active State */
 .eco-textbox-container .variant-active {
-    border-radius: 8px !important;
+border-radius: 8px !important;
 }

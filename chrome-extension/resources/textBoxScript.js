@@ -1,162 +1,106 @@
-(function() {
+(function () {
+let receivedData = null;
 
-    let receivedData = null; // Will hold { iconUrls, componentsData }
+// Listen for the initial payload from content.js
+window.addEventListener("message", (event) => {
+    if (event.data.type === "ECO_TEXTBOX_INIT" && !receivedData) {
+        receivedData = event.data.payload;
+        initWhenReady();
+    }
+});
 
-    // Listener to receive the full data object from content.js
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'ECO_TEXTBOX_INIT' && receivedData === null) {
-            receivedData = event.data.payload;
-            // Now that we have the data, try to initialize all components
-            safeInitializeComponents(); // Plural
+// Keep retrying until all containers exist in the DOM
+function initWhenReady() {
+    if (!receivedData) return;
+
+    const { componentsData } = receivedData;
+    const allReady = componentsData.every((d) =>
+        document.getElementById(d.componentId)
+    );
+
+    if (!allReady) {
+        setTimeout(initWhenReady, 50);
+        return;
+    }
+
+    console.log("All components found, initializing.");
+    componentsData.forEach((data) => {
+        const container = document.getElementById(data.componentId);
+        const comp = container?.querySelector("#custom-component");
+        if (comp) {
+            setupComponent(comp, data);
         }
     });
-    
+}
 
-    // A robust function to check if the DOM is ready for the script
-    function safeInitializeComponents() {
-        if (!receivedData) {
-            return; 
-        }
+function setupComponent(root, data) {
+    const { iconUrls } = receivedData;
+    const MAX_TITLE = 35;
 
-        const componentDataList = receivedData.componentsData;
-        let allFound = true;
-
-        // Check for all three containers to be present
-        componentDataList.forEach(data => {
-            if (!document.getElementById(data.componentId)) {
-                allFound = false;
-            }
-        });
-
-        if (allFound) {
-            // All container elements are found. Proceed with initialization for each.
-            console.log("All component containers found! Initializing component logic.");
-            componentDataList.forEach(data => {
-                const containerEl = document.getElementById(data.componentId);
-                // The component element is the one *inside* the container: #custom-component
-                const component = containerEl.querySelector('#custom-component'); 
-                
-                if (component) {
-                    initializeComponentLogic(component, data);
-                } else {
-                    console.error(`#custom-component not found inside ${data.componentId}`);
-                }
-            });
-        } else {
-            // Not all elements are available yet. Retry.
-            console.warn("Not all component containers found yet, retrying...");
-            setTimeout(safeInitializeComponents, 50); 
-        }
-    }
-
-    // New signature: takes the component element and its specific data
-    function initializeComponentLogic(component, componentData) {
-
-        const receivedIconUrls = receivedData.iconUrls; // Access icon URLs from the global receivedData
-
-        const MAX_TITLE_LENGTH = 35;
-
-        function truncateTitle(text) {
-            if (text.length > MAX_TITLE_LENGTH) {
-                return text.substring(0, MAX_TITLE_LENGTH) + "...";
-            }
-            return text;
-        }
-
-        // --- Component Inputs (Merged with passed data) ---
-        const initialInputs = {
-            // Use the component-specific data passed in
-            title: componentData.title,
-            subtext1: componentData.subtext1 || "N/A", 
-            subtext2: componentData.subtext2 || "N/A", 
-            // Use static/default data for active state/icons for simplicity
-            subtextActive: "seeking to put god's love into action, habitat for humanity brings people together to build homes, communities, and hope.", 
-            iconList: [
-            { id: 'money', src: receivedIconUrls.money.url, description: receivedIconUrls.money.description }, 
-            { id: 'food', src: receivedIconUrls.food.url, description: receivedIconUrls.food.description },
-            { id: 'globe', src: receivedIconUrls.globe.url, description: receivedIconUrls.globe.description }
+    const inputs = {
+        title: data.title,
+        sub1: data.subtext1 || "N/A",
+        sub2: data.subtext2 || "N/A",
+        activeText:
+            "seeking to put god's love into action, habitat for humanity brings people together to build homes, communities, and hope.",
+        icons: [
+            { id: "money", ...iconUrls.money },
+            { id: "food", ...iconUrls.food },
+            { id: "globe", ...iconUrls.globe },
         ],
-        charityURL: "hhtps:"
-        };
+        charityURL: "https:", // placeholder
+    };
 
-        // Truncate title if too long
-        const displayTitle = truncateTitle(initialInputs.title);
+    const shortTitle =
+        inputs.title.length > MAX_TITLE
+            ? inputs.title.slice(0, MAX_TITLE) + "..."
+            : inputs.title;
 
-        // --- DOM Elements and Content Injection ---
-        
-        // ... (The rest of the function remains largely the same, using 'component.querySelector' 
-        // and 'initialInputs' to populate the elements as before) ...
-        
-        const titleEl = component.querySelector('#comp-title');
-        const subtext1DefaultEl = component.querySelector('#comp-subtext-1-default');
-        const subtext1HoverActiveEl = component.querySelector('#comp-subtext-1-hover-active');
-        const subtext2El = component.querySelector('#comp-subtext-2');
-        const largeSubtextEl = component.querySelector('#comp-large-subtext');
-        const iconsEl = component.querySelector('#comp-icons');
-        
-        if (titleEl) titleEl.textContent = displayTitle; 
-        if (subtext1DefaultEl) subtext1DefaultEl.textContent = initialInputs.subtext1;
-        if (subtext1HoverActiveEl) subtext1HoverActiveEl.textContent = initialInputs.subtext1;
-        if (subtext2El) subtext2El.textContent = initialInputs.subtext2;
-        if (largeSubtextEl) largeSubtextEl.textContent = initialInputs.subtextActive;
+    // Populate DOM
+    root.querySelector("#comp-title").textContent = shortTitle;
+    root.querySelector("#comp-subtext-1-default").textContent = inputs.sub1;
+    root.querySelector("#comp-subtext-1-hover-active").textContent =
+        inputs.sub1;
+    root.querySelector("#comp-subtext-2").textContent = inputs.sub2;
+    root.querySelector("#comp-large-subtext").textContent = inputs.activeText;
 
-        // Inject Icons
-        if (iconsEl) {
-            iconsEl.innerHTML = initialInputs.iconList.map(item => 
-                `
-                <div class="styled-icon-box" data-icon-id="${item.id}">
-                    <div class="icon-content">
-                        <img src="${item.src}" alt="${item.id}" />
-                    </div>
-                    <div class="icon-tooltip">${item.description}</div>
+    const iconsEl = root.querySelector("#comp-icons");
+    if (iconsEl) {
+        iconsEl.innerHTML = inputs.icons
+            .map(
+                (item) => `
+            <div class="styled-icon-box" data-icon-id="${item.id}">
+                <div class="icon-content">
+                    <img src="${item.url}" alt="${item.id}" />
                 </div>
-                `
-            ).join('');
-        }
-
-        // --- State Management (Hover/Click logic remains the same) ---
-        let currentState = 'default'; 
-    
-        function updateVariant(variant) {
-            component.className = '';
-            component.classList.add(`variant-${variant}`);
-            currentState = variant;
-            // Optional: Check state changes, maybe include component ID for debugging
-            console.log(`${componentData.componentId} state updated to: ${currentState}`); 
-        }
-        
-        updateVariant('default'); 
-
-        // 5. Hover and Click Logic
-        // ... (Hover and Click logic remains the same) ...
-        
-        // Hover: Switch to hover variant, unless active
-        component.addEventListener('mouseenter', () => {
-            if (currentState === 'default') {
-                updateVariant('hover');
-            }
-        });
-
-        // Mouse Leave: Switch back to default, unless active
-        component.addEventListener('mouseleave', () => {
-            if (currentState === 'hover') {
-                updateVariant('default');
-            }
-        });
-
-        // Click: Toggle between active and default
-        component.addEventListener('click', (event) => {
-            if (event.target.id === 'comp-button') {
-                return;
-            }
-            
-            if (currentState === 'active') {
-                updateVariant('default');
-            } else {
-                updateVariant('active');
-            }
-            event.stopPropagation(); 
-        });
+                <div class="icon-tooltip">${item.description}</div>
+            </div>`
+            )
+            .join("");
     }
+
+    // State & interactivity
+    let state = "default";
+    const setState = (s) => {
+        root.className = `variant-${s}`;
+        state = s;
+    };
+    setState("default");
+
+    root.addEventListener("mouseenter", () => {
+        if (state === "default") setState("hover");
+    });
+
+    root.addEventListener("mouseleave", () => {
+        if (state === "hover") setState("default");
+    });
+
+    root.addEventListener("click", (e) => {
+        if (e.target.id === "comp-button") return;
+        setState(state === "active" ? "default" : "active");
+        e.stopPropagation();
+    });
+}
+
 
 })();
