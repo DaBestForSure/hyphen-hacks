@@ -126,7 +126,7 @@ async function analyzeSentiment(text) {
 
 // 6. Generate search queries using OpenAI GPT-4o-mini
 async function generateSearchQueries(articleTitle, articleText) {
-    if (typeof config === 'undefined' || !config.OPENAI_API) {
+    if (typeof config === 'undefined' || !config.OPENAI_API_KEY) {
         console.log("🌱 ECO EXTENSION: No OpenAI API key, using fallback queries");
         return [
             "disaster relief",
@@ -159,7 +159,7 @@ Search terms only:`;
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${config.OPENAI_API}`
+                'Authorization': `Bearer ${config.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
@@ -458,37 +458,27 @@ async function openTextBox() {
         `;
         mainWrapper.innerHTML += topBarHTML;
 
-        // Use real organization data or fallback
-        const organizations = window.ecoExtensionOrganizations || [];
-        
-        const componentsData = organizations.length >= 3 ? [
-            { 
-                id: 'comp-1', 
-                title: organizations[0].name,
-                subtext1: `${organizations[0].city}, ${organizations[0].state}`,
-                subtext2: "Nonprofit"
-            },
-            { 
-                id: 'comp-2', 
-                title: organizations[1].name,
-                subtext1: `${organizations[1].city}, ${organizations[1].state}`,
-                subtext2: "Nonprofit"
-            },
-            { 
-                id: 'comp-3', 
-                title: organizations[2].name,
-                subtext1: `${organizations[2].city}, ${organizations[2].state}`,
-                subtext2: "Nonprofit"
-            }
-        ] : [
-            { id: 'comp-1', title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission" },
-            { id: 'comp-2', title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation" },
-            { id: 'comp-3', title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event" }
+        // Always use default data for display - use componentId to match textBoxScript.js
+        const componentsData = [
+            { componentId: 'comp-1', title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission" },
+            { componentId: 'comp-2', title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation" },
+            { componentId: 'comp-3', title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event" }
         ];
+        
+        // Print organization data to console for debugging
+        const organizations = window.ecoExtensionOrganizations || [];
+        if (organizations.length > 0) {
+            console.log("🌱 ECO EXTENSION: Found organizations (for debugging):");
+            organizations.forEach((org, index) => {
+                console.log(`${index + 1}. ${org.name} - ${org.city}, ${org.state} (EIN: ${org.ein})`);
+            });
+        } else {
+            console.log("🌱 ECO EXTENSION: No organizations found or using fallback data");
+        }
 
         componentsData.forEach(data => {
             const textBoxContainer = document.createElement('div');
-            textBoxContainer.id = data.id; 
+            textBoxContainer.id = data.componentId; // Use componentId instead of id
             textBoxContainer.classList.add('eco-textbox-container');
             textBoxContainer.innerHTML = componentHTML;
             mainWrapper.appendChild(textBoxContainer);
