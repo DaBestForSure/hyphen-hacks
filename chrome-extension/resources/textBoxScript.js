@@ -34,8 +34,13 @@
     }
 
     function setupComponent(root, data) {
+        // ✅ CHANGE 1: Convert the iconUrls object into an array of its values
         const { iconUrls } = receivedData;
-        const MAX_TITLE = 35;
+        const iconDataArray = Object.values(iconUrls); 
+
+        const MAX_TITLE = 28;
+
+        const specificIconData = iconUrls[data.componentId] || iconDataArray[0]; // Fallback to first
 
         const inputs = {
             title: data.title,
@@ -43,12 +48,17 @@
             sub2: data.subtext2 || "N/A",
             activeText:
                 "seeking to put god's love into action, habitat for humanity brings people together to build homes, communities, and hope.",
-            icons: [
-                { id: "money", ...iconUrls.money },
-                { id: "food", ...iconUrls.food },
-                { id: "globe", ...iconUrls.globe },
-            ],
-            supportURL: data.supportURL || "https://example.com/support", // NEW: configurable support URL
+            // ✅ CHANGE 2: Build the icons array using the dynamically generated icon data
+            // We use the specific icon and wrap it in an array for the single icon display.
+            icons: specificIconData ? [
+                { 
+                    id: data.componentId, 
+                    url: specificIconData.url, 
+                    description: specificIconData.description 
+                }
+            ] : [], // Use an empty array if no data is found
+            
+            supportURL: data.supportURL || "https://example.com/support",
         };
 
         const shortTitle =

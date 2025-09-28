@@ -743,8 +743,7 @@ async function openTextBox() {
     const topBarHTML = `
       <div id="eco-top-bar">
         <img id="top-bar-icon" src="${leafIconUrl}" alt="Leaf Icon"/>
-        <div id="top-bar-title">Local Impact</div>
-        <div id="top-bar-close">×</div>
+        <div id="top-bar-title">uplift</div>
       </div>
     `;
     mainWrapper.innerHTML += topBarHTML;
@@ -810,17 +809,48 @@ async function openTextBox() {
     script.id = "eco-textbox-script";
     document.body.appendChild(script);
 
-     const nteeCategoryMap = {
+    // New map to translate the first letter of the NTEE code to the numeric category ID
+    const nteeLetterToNumberMap = {
+        'A': 1,
+        'B': 2,
+        'C': 3,
+        'D': 3,
+        'E': 4,
+        'F': 4,
+        'G': 4,
+        'H': 4,
+        'I': 5,
+        'J': 5,
+        'K': 5,
+        'L': 5,
+        'M': 5,
+        'N': 5,
+        'O': 5,
+        'P': 5,
+        'Q': 6,
+        'R': 7,
+        'S': 7,
+        'T': 7,
+        'U': 7,
+        'V': 7,
+        'W': 7,
+        'X': 8,
+        'Y': 9,
+        'Z': 10
+    };
+
+    // Existing numeric category map (use NTEE's full name, e.g., 'Unknown/Unclassified')
+    const nteeCategoryMap = {
         1: "Arts, Culture & Humanities",
         2: "Education",
-        3: "Environment and Animals",
+        3: "Environment & Animals",
         4: "Health",
         5: "Human Services",
         6: "International, Foreign Affairs",
         7: "Public, Societal Benefit",
         8: "Religion Related",
         9: "Mutual/Membership Benefit",
-        10: "Unknown, Unclassified"
+        10: "Unknown/Unclassified"
     };
 
     const nteeImageNameMap = {
@@ -839,36 +869,43 @@ async function openTextBox() {
     /**
      * Transforms an array of organization objects into an object map of icon URLs,
      * suitable for direct assignment to an icon URLs variable.
-     * The keys of the returned object are unique identifiers for each organization
-     * (based on a counter in this example).
+     * The keys of the returned object are unique identifiers for each organization.
      *
      * @param {Array<Object>} organizations The input array of organization objects.
      * @returns {Object} An object where keys are organization identifiers and values are icon objects.
      */
     function transformOrganizationsWithNTEE(organizations) {
-        console.log("Organizations passed into NTEE fn.:", organizations)
+        console.log("Organizations passed into NTEE fn.:", organizations);
         if (!Array.isArray(organizations)) {
             console.error("Invalid input data: expected an array of organizations.");
             return {};
         }
 
-        console.log("Attempting to grab ntee codes")
+        console.log("Attempting to grab ntee codes");
 
         let componentCounter = 1;
         const iconUrls = {}; // Initialize the empty object
 
         organizations.map(org => {
-            // 1. Map subseccd to Category Name and Image Name
-            const nteeCode = org.selected_ntee;
-            const categoryName = nteeCategoryMap[nteeCode] || nteeCategoryMap[10]; // Default to 'Unknown'
-            const imageName = nteeImageNameMap[nteeCode] || nteeImageNameMap[10];
+            // 1. Extract the NTEE letter code (the first character)
+            // Ensure org.ntree_code exists and is a string, default to 'Z' for unknown if not
+            const fullNteeCode = org.ntee_code || 'Z'; 
+            const nteeLetter = fullNteeCode.charAt(0).toUpperCase();
+
+            // 2. Map the letter to the numeric category ID (e.g., 'A' -> 1)
+            // Default to 10 (Unknown/Unclassified) if the letter isn't found
+            const numericCode = nteeLetterToNumberMap[nteeLetter] || 10; 
+
+            // 3. Use the numeric code to get the Category Name and Image Name
+            const categoryName = nteeCategoryMap[numericCode];
+            const imageName = nteeImageNameMap[numericCode];
             
             // Use a unique key for the returned object (e.g., comp-1, comp-2, etc.)
             const uniqueKey = `comp-${componentCounter++}`;
             
             const iconURL = chrome.runtime.getURL(`images/${imageName}.svg`);
 
-            // 2. Determine icon URL and description based on category
+            // 4. Determine icon URL and description based on category
             // Construct the dynamic icon object
             const iconData = {
                 url: iconURL,
@@ -876,17 +913,22 @@ async function openTextBox() {
                 description: `${categoryName} type of nonprofit`
             };
 
-            // 3. Assign the icon data to the unique key in the resulting object
+            // 5. Assign the icon data to the unique key in the resulting object
             iconUrls[uniqueKey] = iconData;
-            console.log("Found ntee codes:", nteeCode);
-            console.log("mapped to categoryName:", categoryName, "mapped to imageName:", imageName);
+
+            // Logging for verification
+            console.log("Found NTEE code:", fullNteeCode, "-> Letter:", nteeLetter);
+            console.log("Mapped to numeric code:", numericCode);
+            console.log("Mapped to categoryName:", categoryName, "mapped to imageName:", imageName);
         });
 
         return iconUrls;
     }
 
+
     const iconUrls = transformOrganizationsWithNTEE(window.ecoExtensionOrganizations);
 
+    console.log("iconUrls:", iconUrls)
 
     setTimeout(() => {
       window.postMessage(
