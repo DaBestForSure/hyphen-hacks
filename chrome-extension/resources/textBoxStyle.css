@@ -7,18 +7,24 @@ border-radius: 8px;
 }
 
 #eco-top-bar {
-width: 100%;
-height: 36px;
-background-color: #000843;
-border-radius: 8px 8px 0 0;
-color: white;
-padding: 0 16px;
-display: flex;
-align-items: center;
-justify-content: space-between;
-font-size: 14pt;
-font-weight: bold;
-box-sizing: border-box;
+    width: 100%;
+    height: 36px;
+    background-color: #000843;
+    border-radius: 8px 8px 0 0;
+    color: white;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Keeps left group and close button separated */
+    font-size: 14pt;
+    font-weight: bold;
+    box-sizing: border-box;
+}
+
+/* New style for the left-side group */
+#top-bar-left {
+    display: flex;
+    align-items: center;
 }
 
 #top-bar-icon {
@@ -28,39 +34,36 @@ filter: brightness(0) invert(1);
 margin-right: 8px;
 }
 
-#top-bar-title {
-flex-grow: 1;
-}
+/* #top-bar-title {
+    flex-grow: 1;
+} */
 
 #top-bar-close {
-cursor: pointer;
-font-size: 14pt;
-padding: 0 4px;
-line-height: 1;
-margin-left: 10px;
+    cursor: pointer;
+    font-size: 14pt;
+    padding: 0 4px;
+    line-height: 1;
+    margin-left: 10px;
 }
 
 .eco-textbox-container {
-width: 100%;
+    width: 100%;
 }
 
 #custom-component {
-width: 100%;
-border-radius: 0 8px 8px 0;
-box-sizing: border-box;
-cursor: pointer;
-display: flex;
-justify-content: space-between;
-align-items: center;
-transition:
-height 0.4s ease-in-out,
-padding 0.4s ease-in-out,
-background-color 0.4s ease,
-box-shadow 0.4s ease,
-border-width 0.01s linear 0.4s,
-border-color 0.01s linear 0.4s,
-border-style 0.01s linear 0.4s;
-padding: 0 16px;
+    width: 100%;
+    border-radius: 0 8px 8px 0;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition:
+    height 0.4s ease-in-out,
+    padding 0.4s ease-in-out,
+    background-color 0.4s ease,
+    /* box-shadow 0.4s ease, */
+    padding: 0 16px;
 }
 
 .main-text {
@@ -118,10 +121,7 @@ border-radius: 0 8px 8px 0;
 border-radius: 0 8px 8px 0;
 }
 
-.eco-textbox-container:not(:last-child) .variant-hover {
-box-shadow: none !important;
-border-bottom: none;
-}
+
 .eco-textbox-container:last-child .variant-hover {
 border-radius: 0 8px 8px 0;
 }
@@ -131,7 +131,7 @@ border-radius: 0 8px 8px 0 !important;
 }
 
 .variant-default {
-height: 66px;
+height: 120px;
 background-color: #000843;
 padding: 0 16px;
 border-width: 0;
@@ -157,14 +157,14 @@ opacity: 0;
 }
 
 .variant-hover {
-height: 66px;
-background-color: #192472;
-border-top: 0.2px solid white;
-border-right: 0.2px solid white;
-border-bottom: 0.2px solid white;
-border-left: none;
-box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
-padding: 0 16px;
+    height: 120px;
+    background-color: #192472;
+    border-top: 0.1px solid white;
+    border-right: 0.1px solid white;
+    border-bottom: 0.1px solid white;
+    border-left: none;
+    box-shadow: 0 0 4px 4px rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
 }
 .variant-hover .main-text {
 font-size: 12pt;
@@ -208,6 +208,22 @@ flex-direction: row;
 justify-content: space-between;
 }
 
+.variant-active #comp-button {
+    display: block;
+    margin-top: auto;
+    align-self: flex-end;
+    transition: opacity 0.5s ease-in-out 0.4s; 
+    /* The 0.4s delay ensures the height/background transition starts first */
+    opacity: 0;
+}
+
+.variant-active #comp-button {
+    display: block;
+    margin-top: auto;
+    align-self: flex-end;
+    opacity: 1; /* Fade in to opacity 1 */
+}
+
 .variant-active .content-left {
 width: 75%;
 display: flex;
@@ -231,12 +247,6 @@ display: flex;
 justify-content: flex-end;
 align-self: flex-end;
 margin-bottom: 8px;
-}
-
-.variant-active #comp-button {
-display: block;
-margin-top: auto;
-align-self: flex-end;
 }
 
 .variant-active .main-text {
@@ -269,32 +279,35 @@ z-index: 100;
 }
 
 .icon-tooltip {
-position: absolute;
-bottom: calc(100% + 8px);
-left: 50%;
-transform: translateX(-50%);
-white-space: nowrap;
-background-color: #333;
-color: white;
-padding: 4px 8px;
-border-radius: 4px;
-font-size: 10pt;
-z-index: 99999;
-pointer-events: none;
-opacity: 0;
-visibility: hidden;
-transition: opacity 0.2s, visibility 0.2s;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    /* CHANGE: align to the right edge of the styled-icon-box */
+    right: 0;
+    /* REMOVE: We no longer need this for centering */
+    transform: none;
+    white-space: nowrap;
+    background-color: #333;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10pt;
+    z-index: 99999;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
 }
 
 .icon-tooltip::after {
-content: "";
-position: absolute;
-top: 100%;
-left: 50%;
-margin-left: -5px;
-border-width: 5px;
-border-style: solid;
-border-color: #333 transparent transparent transparent;
+    content: "";
+    position: absolute;
+    top: 100%;
+    /* CHANGE: align to the right edge of the tooltip, then shift it left */
+    right: 5px; /* Adjust this value (5px) to position the pointer correctly over the icon */
+    margin-left: 0; /* Remove old margin-left */
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
 }
 
 .styled-icon-box:hover .icon-tooltip {
@@ -305,10 +318,11 @@ visibility: visible;
 .eco-textbox-container:not(:last-child) .variant-default { border-radius: 0; }
 .eco-textbox-container:last-child .variant-default { border-radius: 0 0 8px 8px; }
 
-.eco-textbox-container:not(:last-child) .variant-hover {
+/* .eco-textbox-container:not(:last-child) .variant-hover {
 box-shadow: none !important;
 border-bottom: none;
-}
+} */
+
 .eco-textbox-container:last-child .variant-hover {
 border-radius: 0 0 8px 8px;
 }
