@@ -35,7 +35,7 @@
 
     function setupComponent(root, data) {
         const { iconUrls } = receivedData;
-        const MAX_TITLE = 25;
+        const MAX_TITLE = 35;
 
         const inputs = {
             title: data.title,

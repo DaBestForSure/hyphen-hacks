@@ -137,7 +137,7 @@ padding: 0 16px;
 border-width: 0;
 }
 .variant-default .main-text {
-font-size: 12pt;
+font-size: 14pt;
 }
 .variant-default .subtext-1-default {
 font-size: 10pt;
@@ -167,7 +167,7 @@ box-shadow: 0 0 8px 8px rgba(255, 255, 255, 0.3);
 padding: 0 16px;
 }
 .variant-hover .main-text {
-font-size: 12pt;
+font-size: 14pt;
 }
 .variant-hover .subtext-1-default {
 transform: translateY(-10px);
@@ -240,7 +240,7 @@ align-self: flex-end;
 }
 
 .variant-active .main-text {
-font-size: 12pt;
+font-size: 14pt;
 }
 .variant-active .subtext-1-default {
 transform: translateY(-10px);
