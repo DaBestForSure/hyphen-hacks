@@ -1,6 +1,5 @@
 // Complete content.js with sentiment analysis, OpenAI, and ProPublica nonprofit search
 // config.js is loaded first, so we can access the global 'config' variable
-
 console.log("🌱 ECO EXTENSION: Starting with all features...");
 
 // 1. Define news sites we care about
@@ -459,11 +458,39 @@ async function openTextBox() {
         mainWrapper.innerHTML += topBarHTML;
 
         // Always use default data for display - use componentId to match textBoxScript.js
-        const componentsData = [
-            { componentId: 'comp-1', title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission" },
-            { componentId: 'comp-2', title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation" },
-            { componentId: 'comp-3', title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event" }
-        ];
+        
+        function transformOrganizationsToComponentData(jsonData) {
+            console.log(jsonData);
+            if (!jsonData) {
+                console.error("Invalid input data: 'organizations' array is missing or not an array.");
+                return [];
+            }
+
+            // A simple counter for generating unique componentIds
+            let componentCounter = 1;
+
+            return jsonData.map(org => {
+                // Create the location string from city and state
+                const location = `${org.city}, ${org.state}`;
+
+                // The input data doesn't have a direct equivalent for 'subtext2' 
+                // (e.g., "Mission", "Donation"). We'll use the 'ntee_code' as a placeholder,
+                // or you could use a static string like "Nonprofit" or "Details".
+                const subtext2Value = org.ntee_code || "N/A"; 
+
+                return {
+                    // Generates a simple, unique ID (e.g., 'comp-1', 'comp-2')
+                    componentId: `comp-${componentCounter++}`, 
+                    // 'name' becomes 'title'
+                    title: org.name, 
+                    // 'city, state' becomes 'subtext1'
+                    subtext1: location, 
+                    // 'ntee_code' is used as 'subtext2'
+                    subtext2: subtext2Value 
+                };
+            });
+        }
+
         
         // Print organization data to console for debugging
         const organizations = window.ecoExtensionOrganizations || [];
@@ -475,6 +502,9 @@ async function openTextBox() {
         } else {
             console.log("🌱 ECO EXTENSION: No organizations found or using fallback data");
         }
+        
+        const componentsData = transformOrganizationsToComponentData(window.ecoExtensionOrganizations);
+
 
         componentsData.forEach(data => {
             const textBoxContainer = document.createElement('div');
