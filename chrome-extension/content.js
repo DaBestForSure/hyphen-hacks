@@ -508,7 +508,12 @@ async function getTopThreeOrganizations(searchQueries) {
   for (let qIndex = 0; qIndex < searchQueries.length; qIndex++) {
     const query = searchQueries[qIndex];
     console.log(`🌱 ECO EXTENSION: Searching ProPublica for: "${query}"`);
-
+   const encodedQuery = encodeURIComponent(query);
+        const url = `https://projects.propublica.org/nonprofits/api/v2/search.json?q=${encodedQuery}`;
+        
+        console.log(`Searching ProPublica API: ${url}`);
+        
+    console.log(url)
     const remaining = MAX_UNIQUE - candidates.length;
     if (remaining <= 0) break;
 
