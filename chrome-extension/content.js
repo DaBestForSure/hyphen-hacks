@@ -484,10 +484,6 @@ function computeImpactScoreFromFiling(filing) {
 }
 
 /* ==================================================================================
-   8) Get top 3 orgs across multiple queries (lazy website lookups)
-   ================================================================================== */
-
-/* ==================================================================================
    8) Get top 3 orgs across multiple queries
       - Collect up to 60 unique EINs.
       - Compute impact scores (money + other factors).
@@ -508,12 +504,7 @@ async function getTopThreeOrganizations(searchQueries) {
   for (let qIndex = 0; qIndex < searchQueries.length; qIndex++) {
     const query = searchQueries[qIndex];
     console.log(`🌱 ECO EXTENSION: Searching ProPublica for: "${query}"`);
-   const encodedQuery = encodeURIComponent(query);
-        const url = `https://projects.propublica.org/nonprofits/api/v2/search.json?q=${encodedQuery}`;
-        
-        console.log(`Searching ProPublica API: ${url}`);
-        
-    console.log(url)
+
     const remaining = MAX_UNIQUE - candidates.length;
     if (remaining <= 0) break;
 
@@ -599,15 +590,24 @@ async function getTopThreeOrganizations(searchQueries) {
   if (withSites.length === 3) return withSites;
 
   // 6) Otherwise, fill remaining slots with highest-impact orgs (no extra lookups beyond top 20)
-  // First try remaining from the top-20 pool (those without sites), then—if still short—allow from the rest of evaluated.
   const need = 3 - withSites.length;
   const fallbackPool = [
-    ...noSiteYet,                 // top-20 that lacked sites
-    ...evaluated.slice(WEBSITE_LOOKUP_BUDGET) // beyond top-20 (no lookups done)
+    ...noSiteYet,
+    ...evaluated.slice(WEBSITE_LOOKUP_BUDGET)
   ];
 
   const filler = fallbackPool.slice(0, need).map(o => ({ ...o, website: null }));
   return [...withSites, ...filler].slice(0, 3);
+}
+
+/* ============ assets display helper (for card pill) ============ */
+function humanMoneyShort(n){
+  const x = Number(n || 0);
+  if (!isFinite(x) || x <= 0) return null;
+  if (x >= 1e9) return `$${(x/1e9).toFixed(1)}B`;
+  if (x >= 1e6) return `$${(x/1e6).toFixed(1)}M`;
+  if (x >= 1e3) return `$${(x/1e3).toFixed(0)}K`;
+  return `$${x.toLocaleString()}`;
 }
 
 /* ============================================
@@ -726,8 +726,7 @@ async function openTextBox() {
   isTextBoxOpen = true;
 
   try {
-    const htmlResponse = await fetch(textBoxHTMLUrl);
-    const componentHTML = await htmlResponse.text();
+    
 
     const mainWrapper = document.createElement("div");
     mainWrapper.id = "eco-main-wrapper";
@@ -748,26 +747,67 @@ async function openTextBox() {
     const topBarHTML = `
       <div id="eco-top-bar">
         <img id="top-bar-icon" src="${leafIconUrl}" alt="Leaf Icon"/>
-        <div id="top-bar-title">uplift</div>
+        <div id="eco-top-bar-title">uplift</div>
       </div>
     `;
     mainWrapper.innerHTML += topBarHTML;
 
     const organizations = window.ecoExtensionOrganizations || [];
+
+    // ----- NTEE → per-card icon mapping -----
+    const nteeLetterToNumberMap = {
+      'A': 1,'B': 2,'C': 3,'D': 3,'E': 4,'F': 4,'G': 4,'H': 4,
+      'I': 5,'J': 5,'K': 5,'L': 5,'M': 5,'N': 5,'O': 5,'P': 5,
+      'Q': 6,'R': 7,'S': 7,'T': 7,'U': 7,'V': 7,'W': 7,'X': 8,'Y': 9,'Z': 10
+    };
+    const nteeCategoryMap = {
+      1:"Arts, Culture & Humanities",2:"Education",3:"Environment & Animals",4:"Health",
+      5:"Human Services",6:"International, Foreign Affairs",7:"Public, Societal Benefit",
+      8:"Religion Related",9:"Mutual/Membership Benefit",10:"Unknown/Unclassified"
+    };
+    const nteeImageNameMap = {
+      1:"wall_art",2:"education",3:"forest",4:"health",5:"human",6:"globe",7:"building",8:"church",9:"handshake",10:"generic"
+    };
+
+    function transformOrganizationsWithNTEE(orgs) {
+      const iconUrls = {};
+      let i = 1;
+      (orgs || []).forEach(org => {
+        const full = org.ntee_code || 'Z';
+        const L = String(full).charAt(0).toUpperCase();
+        const num = nteeLetterToNumberMap[L] || 10;
+        const imageName = nteeImageNameMap[num];
+        const categoryName = nteeCategoryMap[num];
+        const key = `comp-${i++}`;
+        iconUrls[key] = {
+          url: chrome.runtime.getURL(`images/${imageName}.svg`),
+          description: `${categoryName} type of nonprofit`
+        };
+      });
+      return iconUrls;
+    }
+
+    const iconUrls = transformOrganizationsWithNTEE(organizations.slice(0, 3));
+
+    // Build the 3 cards, now including assets for each org
     const componentsData =
       organizations.length > 0
-        ? organizations.slice(0, 3).map((org, index) => ({
-            componentId: `comp-${index + 1}`,
-            title: org.name,
-            subtext1: `${org.city}, ${org.state}`,
-            subtext2: "Nonprofit",
-            activeText: `Learn more about ${org.name} and how you can support their mission in your local community.`,
-            supportURL: org.website || "#",
-          }))
+        ? organizations.slice(0, 3).map((org, index) => {
+            const assetsDisplay = humanMoneyShort(org.latestFiling?.totassetsend);
+            return {
+              componentId: `comp-${index + 1}`,
+              title: org.name,
+              subtext1: `${org.city}, ${org.state}`,
+              subtext2: "Nonprofit",
+              activeText: `Learn more about ${org.name} and how you can support their mission in your local community.`,
+              supportURL: org.website || "#",
+              assetsDisplay // <-- new: formatted assets for the pill
+            };
+          })
         : [
-            { componentId: "comp-1", title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission", supportURL: "https://www.habitat.org" },
-            { componentId: "comp-2", title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation", supportURL: "https://www.feedingamerica.org" },
-            { componentId: "comp-3", title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event", supportURL: "https://www.earthday.org" },
+            { componentId: "comp-1", title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission", activeText: "Learn more about Habitat for Humanity.", supportURL: "https://www.habitat.org", assetsDisplay: "$100M" },
+            { componentId: "comp-2", title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation", activeText: "Learn more about the local food bank drive.", supportURL: "https://www.feedingamerica.org", assetsDisplay: "$2.1M" },
+            { componentId: "comp-3", title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event", activeText: "Learn more about this Earth Day cleanup.", supportURL: "https://www.earthday.org", assetsDisplay: "$450K" },
           ];
 
     if (organizations.length > 0) {
@@ -781,18 +821,20 @@ async function openTextBox() {
       console.log("🌱 ECO EXTENSION: No organizations found, using fallback data");
     }
 
+    // Mount 3 cards
+    const htmlResponse = await fetch(textBoxHTMLUrl);
+    const componentHTML = await htmlResponse.text();
     componentsData.forEach((data) => {
       const box = document.createElement("div");
       box.id = data.componentId;
       box.classList.add("eco-textbox-container");
       box.innerHTML = componentHTML;
+      // stash the data on the node for script consumption (in case message lags)
+      box.dataset.assetsDisplay = data.assetsDisplay || "";
       mainWrapper.appendChild(box);
     });
 
     document.body.appendChild(mainWrapper);
-
-    const closeButton = document.getElementById("top-bar-close");
-    if (closeButton) closeButton.addEventListener("click", closeTextBox);
 
     const styleLink1 = document.createElement("link");
     styleLink1.rel = "stylesheet";
@@ -813,127 +855,6 @@ async function openTextBox() {
     script.src = textBoxScriptUrl;
     script.id = "eco-textbox-script";
     document.body.appendChild(script);
-
-    // New map to translate the first letter of the NTEE code to the numeric category ID
-    const nteeLetterToNumberMap = {
-        'A': 1,
-        'B': 2,
-        'C': 3,
-        'D': 3,
-        'E': 4,
-        'F': 4,
-        'G': 4,
-        'H': 4,
-        'I': 5,
-        'J': 5,
-        'K': 5,
-        'L': 5,
-        'M': 5,
-        'N': 5,
-        'O': 5,
-        'P': 5,
-        'Q': 6,
-        'R': 7,
-        'S': 7,
-        'T': 7,
-        'U': 7,
-        'V': 7,
-        'W': 7,
-        'X': 8,
-        'Y': 9,
-        'Z': 10
-    };
-
-    // Existing numeric category map (use NTEE's full name, e.g., 'Unknown/Unclassified')
-    const nteeCategoryMap = {
-        1: "Arts, Culture & Humanities",
-        2: "Education",
-        3: "Environment & Animals",
-        4: "Health",
-        5: "Human Services",
-        6: "International, Foreign Affairs",
-        7: "Public, Societal Benefit",
-        8: "Religion Related",
-        9: "Mutual/Membership Benefit",
-        10: "Unknown/Unclassified"
-    };
-
-    const nteeImageNameMap = {
-        1: "wall_art",
-        2: "education",
-        3: "forest",
-        4: "health",
-        5: "human",
-        6: "globe",
-        7: "building",
-        8: "church",
-        9: "handshake",
-        10: "generic"
-    };
-
-    /**
-     * Transforms an array of organization objects into an object map of icon URLs,
-     * suitable for direct assignment to an icon URLs variable.
-     * The keys of the returned object are unique identifiers for each organization.
-     *
-     * @param {Array<Object>} organizations The input array of organization objects.
-     * @returns {Object} An object where keys are organization identifiers and values are icon objects.
-     */
-    function transformOrganizationsWithNTEE(organizations) {
-        console.log("Organizations passed into NTEE fn.:", organizations);
-        if (!Array.isArray(organizations)) {
-            console.error("Invalid input data: expected an array of organizations.");
-            return {};
-        }
-
-        console.log("Attempting to grab ntee codes");
-
-        let componentCounter = 1;
-        const iconUrls = {}; // Initialize the empty object
-
-        organizations.map(org => {
-            // 1. Extract the NTEE letter code (the first character)
-            // Ensure org.ntree_code exists and is a string, default to 'Z' for unknown if not
-            const fullNteeCode = org.ntee_code || 'Z'; 
-            const nteeLetter = fullNteeCode.charAt(0).toUpperCase();
-
-            // 2. Map the letter to the numeric category ID (e.g., 'A' -> 1)
-            // Default to 10 (Unknown/Unclassified) if the letter isn't found
-            const numericCode = nteeLetterToNumberMap[nteeLetter] || 10; 
-
-            // 3. Use the numeric code to get the Category Name and Image Name
-            const categoryName = nteeCategoryMap[numericCode];
-            const imageName = nteeImageNameMap[numericCode];
-            
-            // Use a unique key for the returned object (e.g., comp-1, comp-2, etc.)
-            const uniqueKey = `comp-${componentCounter++}`;
-            
-            const iconURL = chrome.runtime.getURL(`images/${imageName}.svg`);
-
-            // 4. Determine icon URL and description based on category
-            // Construct the dynamic icon object
-            const iconData = {
-                url: iconURL,
-                // Example: "Education type of nonprofit"
-                description: `${categoryName} type of nonprofit`
-            };
-
-            // 5. Assign the icon data to the unique key in the resulting object
-            iconUrls[uniqueKey] = iconData;
-
-            // Logging for verification
-            console.log("Found NTEE code:", fullNteeCode, "-> Letter:", nteeLetter);
-            console.log("Mapped to numeric code:", numericCode);
-            console.log("Mapped to categoryName:", categoryName, "mapped to imageName:", imageName);
-        });
-
-        return iconUrls;
-    }
-
-
-    const iconUrls = transformOrganizationsWithNTEE(window.ecoExtensionOrganizations);
-
-    console.log("iconUrls:", iconUrls)
 
     setTimeout(() => {
       window.postMessage(

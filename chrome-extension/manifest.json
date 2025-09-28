@@ -3,32 +3,28 @@
   "name": "Eco Extension",
   "version": "1.0",
   "description": "Extension for local impact awareness",
-
   "icons": {
     "16": "images/leafIcon.svg",
     "48": "images/leafIcon.svg",
     "128": "images/leafIcon.svg"
   },
-
   "permissions": [
     "activeTab",
     "storage"
   ],
-
   "host_permissions": [
     "https://projects.propublica.org/*",
     "https://projects.propublica.org/nonprofits/*",
     "https://api.openai.com/*",
     "https://language.googleapis.com/*",
     "https://www.googleapis.com/*",
+    "https://places.googleapis.com/*",
     "https://www.mapquestapi.com/*"
   ],
-
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -36,7 +32,6 @@
       "run_at": "document_end"
     }
   ],
-
   "web_accessible_resources": [
     {
       "resources": [
