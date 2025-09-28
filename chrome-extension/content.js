@@ -4,9 +4,7 @@
 
 console.log("🌱 ECO EXTENSION: Starting with all features...");
 
-/* ==============================
-   1) Site detection
-   ============================== */
+
 
 const NEWS_SITES = ["nytimes.com", "economist.com", "wsj.com", "washingtonpost.com"];
 
@@ -15,9 +13,8 @@ function isOnNewsSite() {
   return NEWS_SITES.some((site) => currentDomain.includes(site));
 }
 
-/* ======================================
-   2) Article title / text extraction
-   ====================================== */
+
+
 
 function extractArticleTitle() {
   const selectors = [
@@ -135,7 +132,7 @@ async function analyzeArticleSentiment(articleTitle, articleText) {
     const scores = [titleScore, bodyScore].filter((n) => typeof n === "number");
     const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
 
-    const shouldShow = avgScore !== null ? avgScore <= 0.2 : false;
+    const shouldShow = avgScore !== null ? avgScore <= 0 : false;
     return { titleScore, bodyScore, avgScore, shouldShow };
   } catch (err) {
     console.error("🌱 ECO EXTENSION: analyzeArticleSentiment error:", err);
@@ -1033,9 +1030,7 @@ function closeTextBox() {
   if (script) script.remove();
 }
 
-/* ==========================
-   12) Boot the whole thing
-   ========================== */
+
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initializeExtension);
