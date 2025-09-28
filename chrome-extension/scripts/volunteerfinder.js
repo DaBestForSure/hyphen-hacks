@@ -1,157 +1,108 @@
-import { config } from './config.js';
+import { config } from "./config.js";
 
 /**
- * Checks if an organization has a location within 50 miles of a given address
- * @param {string} organizationName - Name of the organization (e.g., "Habitat for Humanity")
- * @param {string} address - Address to check distance from (city, full address, zip, etc.)
- * @returns {Promise<{hasLocation: boolean, distance?: number}>} 
+ * Check if an organization has a location within `radiusMiles` of `address`.
+ * @param {string} organizationName
+ * @param {string} address
+ * @param {number} [radiusMiles=50]
+ * @returns {Promise<{ hasLocation: boolean, distance?: number }>}
  */
-async function checkOrganizationLocation(organizationName, address) {
+export async function checkOrganizationLocation(organizationName, address, radiusMiles = 50) {
   const API_KEY = config.GOOGLE_PLACES_API_KEY;
-  
   if (!API_KEY) {
-    console.error('API key not found in config.js');
+    console.error("Missing GOOGLE_PLACES_API_KEY in config.js");
     return { hasLocation: false };
   }
 
   try {
-    // Step 1: Geocode the input address
-    const userCoords = await geocodeAddress(address, API_KEY);
-    if (!userCoords) {
-      console.error('Could not geocode address:', address);
-      return { hasLocation: false };
+    const user = await geocodeAddress(address, API_KEY);
+    if (!user) return { hasLocation: false };
+
+    const places = await searchOrganizationLocations(organizationName, address, API_KEY);
+    if (!places.length) return { hasLocation: false };
+
+    let closest = Infinity;
+    for (const p of places) {
+      const loc = p.location;
+      if (!loc) continue;
+
+      const d = haversineMiles(user.lat, user.lng, loc.latitude, loc.longitude);
+      if (d < closest) closest = d;
     }
 
-    // Step 2: Search for organization locations near the address
-    const orgLocations = await searchOrganizationLocations(organizationName, address, API_KEY);
-    if (!orgLocations || orgLocations.length === 0) {
-      return { hasLocation: false };
+    if (!isFinite(closest)) return { hasLocation: false };
+    if (closest <= radiusMiles) {
+      return { hasLocation: true, distance: round1(closest) };
     }
-
-    // Step 3: Find closest location and calculate distance
-    let closestDistance = Infinity;
-    
-    for (const location of orgLocations) {
-      if (location.location) {
-        const distance = calculateDistance(
-          userCoords.lat, 
-          userCoords.lng, 
-          location.location.latitude, 
-          location.location.longitude
-        );
-        
-        if (distance < closestDistance) {
-          closestDistance = distance;
-        }
-      }
-    }
-
-    // Step 4: Check if within 50 miles
-    if (closestDistance <= 50) {
-      return { 
-        hasLocation: true, 
-        distance: Math.round(closestDistance * 10) / 10 // Round to 1 decimal
-      };
-    } else {
-      return { hasLocation: false };
-    }
-
-  } catch (error) {
-    console.error('Error checking organization location:', error);
+    return { hasLocation: false };
+  } catch (err) {
+    console.error("checkOrganizationLocation error:", err);
     return { hasLocation: false };
   }
 }
 
-/**
- * Geocode an address using Google Geocoding API
- */
 async function geocodeAddress(address, apiKey) {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
   try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`
-    );
-    
-    const data = await response.json();
-    
-    if (data.status === 'OK' && data.results.length > 0) {
-      const location = data.results[0].geometry.location;
-      return { lat: location.lat, lng: location.lng };
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.error("Geocode HTTP error:", res.status, res.statusText);
+      return null;
     }
-    
-    return null;
-  } catch (error) {
-    console.error('Geocoding error:', error);
+    const data = await res.json();
+    const hit = data?.results?.[0]?.geometry?.location;
+    return data.status === "OK" && hit ? { lat: hit.lat, lng: hit.lng } : null;
+  } catch (err) {
+    console.error("Geocode fetch error:", err);
     return null;
   }
 }
 
-/**
- * Search for organization locations using Google Places API
- */
 async function searchOrganizationLocations(organizationName, nearAddress, apiKey) {
+  const url = "https://places.googleapis.com/v1/places:searchText";
+  const body = {
+    textQuery: `${organizationName} near ${nearAddress}`,
+    maxResultCount: 10
+  };
+
   try {
-    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-      method: 'POST',
+    const res = await fetch(url, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location'
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location"
       },
-      body: JSON.stringify({
-        textQuery: `${organizationName} near ${nearAddress}`,
-        maxResultCount: 10
-      })
+      body: JSON.stringify(body)
     });
 
-    const data = await response.json();
-    
-    if (data.places && data.places.length > 0) {
-      return data.places;
+    if (!res.ok) {
+      console.error("Places HTTP error:", res.status, res.statusText);
+      return [];
     }
-    
-    return [];
-  } catch (error) {
-    console.error('Places API error:', error);
+
+    const data = await res.json();
+    return Array.isArray(data?.places) ? data.places : [];
+  } catch (err) {
+    console.error("Places fetch error:", err);
     return [];
   }
 }
 
-/**
- * Calculate straight-line distance between two coordinates using Haversine formula
- * @param {number} lat1 - Latitude of first point
- * @param {number} lng1 - Longitude of first point  
- * @param {number} lat2 - Latitude of second point
- * @param {number} lng2 - Longitude of second point
- * @returns {number} Distance in miles
- */
-function calculateDistance(lat1, lng1, lat2, lng2) {
-  const R = 3959; // Earth's radius in miles
-  const dLat = toRadians(lat2 - lat1);
-  const dLng = toRadians(lng2 - lng1);
-  
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  
-  return distance;
+function haversineMiles(lat1, lng1, lat2, lng2) {
+  const R = 3959; // miles
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Convert degrees to radians
- */
-function toRadians(degrees) {
-  return degrees * (Math.PI / 180);
-}
+const toRad = (deg) => (deg * Math.PI) / 180;
+const round1 = (n) => Math.round((n + Number.EPSILON) * 10) / 10;
 
-// Example usage:
-// checkOrganizationLocation("Habitat for Humanity", "San Francisco, CA")
-//   .then(result => console.log(result));
-// Expected output: { hasLocation: true, distance: 15.3 } or { hasLocation: false }
-
-// Export for use in modules
-if (typeof module !== 'undefined' && module.exports) {
+// CommonJS compatibility
+if (typeof module !== "undefined" && module.exports) {
   module.exports = { checkOrganizationLocation };
 }
