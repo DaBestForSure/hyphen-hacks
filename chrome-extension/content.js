@@ -21,14 +21,14 @@ function isOnNewsSite() {
 
 function extractArticleTitle() {
   const selectors = [
-    'h1[data-testid="headline"]', // NYTimes
-    "h1.headline", // WSJ
-    "h1.article__headline", // Common pattern
-    'h1[class*="headline"]', // Any h1 with "headline" in class
-    'h1[class*="title"]', // Any h1 with "title" in class
-    "article h1", // H1 inside article tag
-    ".article-title", // Generic
-    "h1", // Fallback
+    'h1[data-testid="headline"]',
+    "h1.headline",
+    "h1.article__headline",
+    'h1[class*="headline"]',
+    'h1[class*="title"]',
+    "article h1",
+    ".article-title",
+    "h1",
   ];
   for (const selector of selectors) {
     const el = document.querySelector(selector);
@@ -39,7 +39,7 @@ function extractArticleTitle() {
 
 function extractArticleText() {
   const contentSelectors = [
-    'section[name="articleBody"]', // NYTimes
+    'section[name="articleBody"]',
     ".article-body",
     ".story-body",
     'div[data-testid="articleBody"]',
@@ -119,6 +119,31 @@ async function analyzeSentiment(text) {
 }
 
 /* ===========================================
+   3.5) Article-level sentiment wrapper
+   =========================================== */
+
+async function analyzeArticleSentiment(articleTitle, articleText) {
+  try {
+    const [titleRes, bodyRes] = await Promise.all([
+      analyzeSentiment(articleTitle || ""),
+      analyzeSentiment(articleText || "")
+    ]);
+
+    const titleScore = typeof titleRes?.score === "number" ? titleRes.score : null;
+    const bodyScore  = typeof bodyRes?.score  === "number" ? bodyRes.score  : null;
+
+    const scores = [titleScore, bodyScore].filter((n) => typeof n === "number");
+    const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
+
+    const shouldShow = avgScore !== null ? avgScore <= 0.2 : false;
+    return { titleScore, bodyScore, avgScore, shouldShow };
+  } catch (err) {
+    console.error("🌱 ECO EXTENSION: analyzeArticleSentiment error:", err);
+    return { titleScore: null, bodyScore: null, avgScore: null, shouldShow: false };
+  }
+}
+
+/* ===========================================
    4) OpenAI search-term generation
    =========================================== */
 
@@ -171,8 +196,7 @@ Search terms only:`;
    5) ProPublica search (via background)
    ========================================== */
 
-// Accept a limit so callers can request e.g. 20. Background should honor it.
-async function searchProPublica(query, limit = 10) {
+async function searchProPublica(query, limit = 30) {
   try {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ type: "SEARCH_PROPUBLICA", query, limit }, (response) => {
@@ -195,6 +219,7 @@ async function searchProPublica(query, limit = 10) {
     return [];
   }
 }
+
 /* ================================================
    6) Website finding (Google CSE + MapQuest fallback)
    ================================================ */
@@ -216,39 +241,25 @@ function isCauseIQ(url) {
   }
 }
 
-// Hosts we never want for "official site" (news, profiles, caches, social, aggregators)
 const BLOCKED_HOST_PATTERNS = [
-  // News & wire
   "nytimes.com","washingtonpost.com","wsj.com","theguardian.com","latimes.com","reuters.com",
   "apnews.com","bloomberg.com","forbes.com","ft.com","economist.com","cnn.com","bbc.co.uk","bbc.com",
   "npr.org","aljazeera.com","usatoday.com","foxnews.com","abcnews.go.com","cbsnews.com","nbcnews.com",
   "yahoo.com","news.yahoo.com","time.com","newsweek.com","politico.com","vox.com","theatlantic.com",
-  // Local/metro news-ish patterns
   "patch.com","triblive.com","chicagotribune.com","sfgate.com","sfchronicle.com","mercurynews.com","startribune.com",
   "mlive.com","cleveland.com","oregonlive.com","boston.com","bostonglobe.com","seattletimes.com","denverpost.com",
-  // Profiles / directories / job boards / review sites
   "charitynavigator.org","guidestar.org","candid.org","greatnonprofits.org","glassdoor.com","indeed.com","ziprecruiter.com",
   "yelp.com","meetup.com","eventbrite.com","givengain.com","justgiving.com","donorbox.org",
-  // Company/people databases
   "crunchbase.com","bloomberg.com","pitchbook.com","rocketreach.co","zoominfo.com","owler.com",
-  // Social
   "facebook.com","twitter.com","x.com","instagram.com","linkedin.com","youtube.com","tiktok.com",
-  // Wiki & mirrors
   "wikipedia.org","m.wikidata.org","wikimedia.org",
-  // Caches / utilities
   "webcache.googleusercontent.com","translate.google.com"
 ];
 
-// Paths that scream “article/press/media”, not a homepage
 const ARTICLEY_PATH_RE = /\/(news|article|articles|story|stories|press|media|opinions?|editorial|blog|politics|local|world|investigations?)\b/i;
-
-// Words in title/snippet that usually indicate a newsy page
 const NEWSY_TEXT_HINTS = /\b(report|reports|investigation|investigates|obituary|breaking|editorial|opinion|says|sued|charged|arrested|kills?|dead|dies)\b/i;
-
-// TLDs we like for official nonprofit sites
 const GOOD_TLDS_RE = /\.(org|ngo|ong|charity|foundation|edu|org\.[a-z]{2}|[a-z]{2}\.org)(\/|$)/i;
 
-// Some directories are okay if they directly link to official site—but we don’t treat them as the official site.
 const DIRECTORY_HOST_PATTERNS = [
   "charitynavigator.org","guidestar.org","candid.org","greatnonprofits.org","charitywatch.org"
 ];
@@ -295,9 +306,35 @@ function tokensFromName(name) {
 }
 
 function hostnameMatchesOrg(host, orgNameTokens) {
-  // split hostname labels and check if any meaningful token appears
   const labels = host.split(".")[0].split(/[^a-z0-9]/g).filter(Boolean);
   return orgNameTokens.some(tok => labels.some(lbl => lbl.includes(tok) || tok.includes(lbl)));
+}
+
+// Require the full org name (normalized) to be present in CSE title or URL
+function hasFullOrgNameInTitleOrUrl(orgName, url, cseTitle = "") {
+  if (!orgName || !url) return false;
+
+  const norm = (s) =>
+    String(s)
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const squish = (s) => norm(s).replace(/\s+/g, "");
+  const orgFull = squish(orgName);
+
+  const titleHas = squish(cseTitle).includes(orgFull);
+
+  let urlHas = false;
+  try {
+    const u = new URL(url);
+    const hostPath = `${u.hostname} ${u.pathname}`;
+    urlHas = squish(hostPath).includes(orgFull);
+  } catch {}
+
+  return titleHas || urlHas;
 }
 
 function isLikelyOfficial(url, orgName, cseTitle = "", cseSnippet = "") {
@@ -308,29 +345,27 @@ function isLikelyOfficial(url, orgName, cseTitle = "", cseSnippet = "") {
   if (looksLikeArticlePath(url)) return false;
   if (textLooksNewsy(cseTitle) || textLooksNewsy(cseSnippet)) return false;
 
+  // Strict: full org name must appear in title or URL
+  if (!hasFullOrgNameInTitleOrUrl(orgName, url, cseTitle)) return false;
+
   const host = hostnameOf(url);
   const nameTokens = tokensFromName(orgName);
 
-  // Strong positive signals
   const tldGood = GOOD_TLDS_RE.test(url);
   const hostMatches = hostnameMatchesOrg(host, nameTokens);
 
-  // Extra: prefer root-ish pages over deep paths
   let pathPenalty = 0;
   try {
     const u = new URL(url);
-    // penalize long/deep paths that look like sections or posts
     if (u.pathname.split("/").filter(Boolean).length >= 3) pathPenalty += 1;
-    if (/\b(donate|volunteer|about|our-work|programs|contact)\b/i.test(u.pathname)) pathPenalty -= 0.5; // mild bonus
+    if (/\b(donate|volunteer|about|our-work|programs|contact)\b/i.test(u.pathname)) pathPenalty -= 0.5;
   } catch {}
 
-  // Minimum bar: hostname should match OR TLD should be nonprofit-y
   return (hostMatches || tldGood) && pathPenalty <= 0;
 }
 
 function isLegitimateNonprofit(url) {
   if (!url) return false;
-  const host = hostnameOf(url);
   if (isBlockedHost(url) || isDirectoryHost(url)) return false;
   return GOOD_TLDS_RE.test(url) || /\b(donate|volunteer|foundation|nonprofit|charity)\b/i.test(url) || /\/(donate|volunteer|about)\b/i.test(url);
 }
@@ -343,7 +378,6 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
 
   try {
     const where = orgCity && orgState ? `${orgCity} ${orgState}` : "";
-    // steer the CSE away from news by asking for official home-ish intents
     const query = `"${orgName}" ${where} (official|home|homepage) (donate|volunteer|about) -site:facebook.com -site:linkedin.com -site:twitter.com -site:x.com -site:instagram.com -site:wikipedia.org`;
     const url = `https://www.googleapis.com/customsearch/v1?key=${config.GOOGLE_API}&cx=${config.SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&num=10`;
     const response = await fetch(url);
@@ -353,7 +387,7 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
     const items = data.items || [];
     console.log(`🌱 ECO EXTENSION: Found ${items.length} search results for "${orgName}" ${where}`);
 
-    // 1) First pass: strict official heuristic (.org-ish + hostname/name match, non-article, non-news)
+    // Pass 1: strict official heuristic
     for (const item of items) {
       const { link, title = "", snippet = "" } = item;
       if (isLikelyOfficial(link, orgName, title, snippet)) {
@@ -362,19 +396,19 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
       }
     }
 
-    // 2) Second pass: allow .com if hostname matches org and still not news/article/directory
+    // Pass 2: allow .com if hostname matches AND full name present
     for (const item of items) {
       const { link, title = "", snippet = "" } = item;
       if (!isBlockedHost(link) && !looksLikeArticlePath(link) && !textLooksNewsy(title) && !textLooksNewsy(snippet)) {
         const host = hostnameOf(link);
-        if (hostnameMatchesOrg(host, tokensFromName(orgName))) {
-          console.log(`🌱 ECO EXTENSION: Accepting matched host (.com ok): ${link}`);
+        if (hostnameMatchesOrg(host, tokensFromName(orgName)) && hasFullOrgNameInTitleOrUrl(orgName, link, title)) {
+          console.log(`🌱 ECO EXTENSION: Accepting matched host (.com ok, full name present): ${link}`);
           if (!isPdfUrl(link) && !isCauseIQ(link)) return link;
         }
       }
     }
 
-    // 3) MapQuest fallback (single hit)
+    // MapQuest fallback
     if (typeof config.MAPQUEST_API_KEY !== "undefined" && config.MAPQUEST_API_KEY) {
       const mapquestQuery = `${orgName} ${orgCity || ""} ${orgState || ""}`.trim();
       const mapquestUrl =
@@ -385,7 +419,7 @@ async function findOfficialWebsite(orgName, orgCity, orgState) {
           const mqData = await mqResponse.json();
           const fields = mqData?.results?.[0]?.fields || {};
           const site = fields.website;
-          if (site && !isPdfUrl(site) && isLegitimateNonprofit(site)) {
+          if (site && !isPdfUrl(site) && isLegitimateNonprofit(site) && hasFullOrgNameInTitleOrUrl(orgName, site)) {
             console.log(`🌱 ECO EXTENSION: MapQuest fallback found URL: ${site}`);
             return site;
           }
@@ -408,6 +442,7 @@ async function getOrganizationWebsite(orgName, ein, orgCity, orgState) {
   const website = await findOfficialWebsite(orgName, orgCity, orgState);
   return { name: orgName, ein, website };
 }
+
 /* ==========================================================
    7) ProPublica org details (via background) + impact score
    ========================================================== */
@@ -445,30 +480,31 @@ function computeImpactScoreFromFiling(filing) {
   const rev     = Math.max(0, Number(filing?.totrevenue || 0));
   const assets  = Math.max(0, Number(filing?.totassetsend || 0));
   const contrib = Math.max(0, Number(filing?.totcntrbgfts || 0));
-  // Lightweight, monotonic “size-ish” score; tweak weights freely.
   return 1.2 * Math.log1p(rev) + 0.9 * Math.log1p(assets) + 0.8 * Math.log1p(contrib);
 }
 
 /* ==================================================================================
    8) Get top 3 orgs across multiple queries (lazy website lookups)
-      - Gather up to 20 EINs across queries.
-      - Compute impact scores (no website lookups yet).
+   ================================================================================== */
+
+/* ==================================================================================
+   8) Get top 3 orgs across multiple queries
+      - Collect up to 60 unique EINs.
+      - Compute impact scores (money + other factors).
       - Sort by impact (with slight early-query boost).
-      - Walk the sorted list top-down:
-          * Lookup websites until we’ve found 3 orgs with websites.
-          * If we reach 3, STOP doing website lookups.
-          * If fewer than 3 found, fill remaining slots with highest-impact orgs (website=null).
-      - Reject any website that is a PDF or blocked host.
+      - Run website lookups for the TOP 20 ONLY.
+      - Prefer orgs with valid websites; fill remaining slots from impact list (no extra lookups).
    ================================================================================== */
 
 async function getTopThreeOrganizations(searchQueries) {
   if (!Array.isArray(searchQueries) || searchQueries.length === 0) return [];
 
-  const MAX_UNIQUE = 20;
+  const MAX_UNIQUE = 60;            // find up to 60
+  const WEBSITE_LOOKUP_BUDGET = 20; // only do website lookups for top 20
   const seenEIN = new Set();
   const candidates = [];
 
-  // 1) Collect up to 20 unique EINs across queries, preserving which query found them
+  // 1) Collect up to 60 unique EINs across queries, preserving query index
   for (let qIndex = 0; qIndex < searchQueries.length; qIndex++) {
     const query = searchQueries[qIndex];
     console.log(`🌱 ECO EXTENSION: Searching ProPublica for: "${query}"`);
@@ -505,8 +541,9 @@ async function getTopThreeOrganizations(searchQueries) {
     const latest = pickLatestFilingWithData(details.filings_with_data || []);
     if (!latest) continue;
 
+    // "Importance" score: money (revenue/assets/contrib) + slight early-query boost
     const baseImpact = computeImpactScoreFromFiling(latest);
-    const earlyBoost = 0.25 * Math.max(0, (searchQueries.length - 1 - c._queryIndex));
+    const earlyBoost = 2 * Math.max(0, (searchQueries.length - 1 - c._queryIndex));
 
     evaluated.push({
       ein: c.ein,
@@ -521,7 +558,7 @@ async function getTopThreeOrganizations(searchQueries) {
         totassetsend: latest.totassetsend || 0,
         totcntrbgfts: latest.totcntrbgfts || 0,
       },
-      website: null, // filled lazily
+      website: null, // filled only for top 20
     });
   }
 
@@ -533,57 +570,39 @@ async function getTopThreeOrganizations(searchQueries) {
   // 3) Sort by impactScore desc
   evaluated.sort((a, b) => b.impactScore - a.impactScore);
 
-  // 4) Walk sorted list; do website lookups UNTIL we have 3 with websites; then stop looking up
+  // 4) Website lookups for TOP 20 ONLY
   const withSites = [];
   const noSiteYet = [];
-  for (const org of evaluated) {
-    if (withSites.length < 3) {
-      const siteBundle = await getOrganizationWebsite(org.name, org.ein, org.city, org.state);
-      const websiteUrl = siteBundle?.website || null;
-      if (websiteUrl && !isPdfUrl(websiteUrl)) {
-        org.website = websiteUrl;
-        withSites.push(org);
-      } else {
-        org.website = null;
-        noSiteYet.push(org);
-      }
+  const lookupSlice = evaluated.slice(0, WEBSITE_LOOKUP_BUDGET);
+
+  for (const org of lookupSlice) {
+    if (withSites.length >= 3) break; // stop once we have 3 with sites
+
+    const siteBundle = await getOrganizationWebsite(org.name, org.ein, org.city, org.state);
+    const websiteUrl = siteBundle?.website || null;
+
+    if (websiteUrl && !isPdfUrl(websiteUrl)) {
+      org.website = websiteUrl; // passes strict checks inside findOfficialWebsite
+      withSites.push(org);
     } else {
-      // Already have 3 with websites → no more lookups
-      break;
+      org.website = null;
+      noSiteYet.push(org);
     }
   }
 
+  // 5) If we already have 3 with websites, return them (already top-20 by impact)
   if (withSites.length === 3) return withSites;
 
-  // Otherwise, fill remaining slots with highest-impact orgs without websites (no extra lookups)
+  // 6) Otherwise, fill remaining slots with highest-impact orgs (no extra lookups beyond top 20)
+  // First try remaining from the top-20 pool (those without sites), then—if still short—allow from the rest of evaluated.
   const need = 3 - withSites.length;
-  const filler = noSiteYet.slice(0, need).map((o) => ({ ...o, website: null }));
+  const fallbackPool = [
+    ...noSiteYet,                 // top-20 that lacked sites
+    ...evaluated.slice(WEBSITE_LOOKUP_BUDGET) // beyond top-20 (no lookups done)
+  ];
+
+  const filler = fallbackPool.slice(0, need).map(o => ({ ...o, website: null }));
   return [...withSites, ...filler].slice(0, 3);
-}
-
-async function analyzeArticleSentiment(articleTitle, articleText) {
-  try {
-    const [titleRes, bodyRes] = await Promise.all([
-      analyzeSentiment(articleTitle || ""),
-      analyzeSentiment(articleText || "")
-    ]);
-
-    const titleScore = typeof titleRes?.score === "number" ? titleRes.score : null;
-    const bodyScore  = typeof bodyRes?.score  === "number" ? bodyRes.score  : null;
-
-    // Combine scores; if one is missing, fall back to the other
-    const scores = [titleScore, bodyScore].filter((n) => typeof n === "number");
-    const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null;
-
-    // Heuristic: show the UI for neutral/negative pieces
-    // (Google returns ~[-1, 1]; our fallback returns about -0.3 or 0.1)
-    const shouldShow = avgScore !== null ? avgScore <= 0.2 : false;
-
-    return { titleScore, bodyScore, avgScore, shouldShow };
-  } catch (err) {
-    console.error("🌱 ECO EXTENSION: analyzeArticleSentiment error:", err);
-    return { titleScore: null, bodyScore: null, avgScore: null, shouldShow: false };
-  }
 }
 
 /* ============================================
@@ -764,7 +783,6 @@ async function openTextBox() {
       console.log("🌱 ECO EXTENSION: No organizations found, using fallback data");
     }
 
-    // Mount 3 cards
     componentsData.forEach((data) => {
       const box = document.createElement("div");
       box.id = data.componentId;
