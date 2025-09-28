@@ -10,7 +10,7 @@ Returning a positive summary and sources
 
 const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
 const MODEL = "gemini-2.5-flash-preview-05-20";
-const apiKey = "AIzaSyBSBx48-qhSbpwXFBPmJEHcyrvoKPaTOWY";
+const apiKey = config.GEMINI_API_KEY;
 
 // Retry wrapper with exponential backoff
 async function fetchWithRetry(url, options, retries = 3) {
