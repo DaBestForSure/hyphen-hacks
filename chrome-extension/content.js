@@ -667,12 +667,6 @@ const textBoxCSSUrl = chrome.runtime.getURL("resources/textBoxStyle.css");
 const styledIconCSSUrl = chrome.runtime.getURL("resources/styledIcon.css");
 const textBoxScriptUrl = chrome.runtime.getURL("resources/textBoxScript.js");
 
-const iconUrls = {
-  money: { url: chrome.runtime.getURL("images/money.svg"), description: "Financial Impact" },
-  food: { url: chrome.runtime.getURL("images/food.svg"), description: "Food & Shelter" },
-  globe: { url: chrome.runtime.getURL("images/globe.svg"), description: "Global Reach" },
-};
-
 let isTextBoxOpen = false;
 
 function createIcon() {
@@ -815,6 +809,84 @@ async function openTextBox() {
     script.src = textBoxScriptUrl;
     script.id = "eco-textbox-script";
     document.body.appendChild(script);
+
+     const nteeCategoryMap = {
+        1: "Arts, Culture & Humanities",
+        2: "Education",
+        3: "Environment and Animals",
+        4: "Health",
+        5: "Human Services",
+        6: "International, Foreign Affairs",
+        7: "Public, Societal Benefit",
+        8: "Religion Related",
+        9: "Mutual/Membership Benefit",
+        10: "Unknown, Unclassified"
+    };
+
+    const nteeImageNameMap = {
+        1: "wall_art",
+        2: "education",
+        3: "forest",
+        4: "health",
+        5: "human",
+        6: "globe",
+        7: "building",
+        8: "church",
+        9: "handshake",
+        10: "generic"
+    };
+
+    /**
+     * Transforms an array of organization objects into an object map of icon URLs,
+     * suitable for direct assignment to an icon URLs variable.
+     * The keys of the returned object are unique identifiers for each organization
+     * (based on a counter in this example).
+     *
+     * @param {Array<Object>} organizations The input array of organization objects.
+     * @returns {Object} An object where keys are organization identifiers and values are icon objects.
+     */
+    function transformOrganizationsWithNTEE(organizations) {
+        console.log("Organizations passed into NTEE fn.:", organizations)
+        if (!Array.isArray(organizations)) {
+            console.error("Invalid input data: expected an array of organizations.");
+            return {};
+        }
+
+        console.log("Attempting to grab ntee codes")
+
+        let componentCounter = 1;
+        const iconUrls = {}; // Initialize the empty object
+
+        organizations.map(org => {
+            // 1. Map subseccd to Category Name and Image Name
+            const nteeCode = org.selected_ntee;
+            const categoryName = nteeCategoryMap[nteeCode] || nteeCategoryMap[10]; // Default to 'Unknown'
+            const imageName = nteeImageNameMap[nteeCode] || nteeImageNameMap[10];
+            
+            // Use a unique key for the returned object (e.g., comp-1, comp-2, etc.)
+            const uniqueKey = `comp-${componentCounter++}`;
+            
+            const iconURL = chrome.runtime.getURL(`images/${imageName}.svg`);
+
+            // 2. Determine icon URL and description based on category
+            // Construct the dynamic icon object
+            const iconData = {
+                url: iconURL,
+                // Example: "Education type of nonprofit"
+                description: `${categoryName} type of nonprofit`
+            };
+
+            // 3. Assign the icon data to the unique key in the resulting object
+            iconUrls[uniqueKey] = iconData;
+            console.log("Found ntee codes:", nteeCode);
+            console.log("mapped to categoryName:", categoryName, "mapped to imageName:", imageName);
+        });
+
+        return iconUrls;
+    }
+
+    const iconUrls = transformOrganizationsWithNTEE(window.ecoExtensionOrganizations);
+
 
     setTimeout(() => {
       window.postMessage(
