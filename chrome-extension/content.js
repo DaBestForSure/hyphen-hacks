@@ -242,16 +242,19 @@ function isCauseIQ(url) {
 }
 
 const BLOCKED_HOST_PATTERNS = [
+  // national & local news
   "nytimes.com","washingtonpost.com","wsj.com","theguardian.com","latimes.com","reuters.com",
   "apnews.com","bloomberg.com","forbes.com","ft.com","economist.com","cnn.com","bbc.co.uk","bbc.com",
   "npr.org","aljazeera.com","usatoday.com","foxnews.com","abcnews.go.com","cbsnews.com","nbcnews.com",
   "yahoo.com","news.yahoo.com","time.com","newsweek.com","politico.com","vox.com","theatlantic.com",
   "patch.com","triblive.com","chicagotribune.com","sfgate.com","sfchronicle.com","mercurynews.com","startribune.com",
   "mlive.com","cleveland.com","oregonlive.com","boston.com","bostonglobe.com","seattletimes.com","denverpost.com",
+  // directories / job boards / social etc.
   "charitynavigator.org","guidestar.org","candid.org","greatnonprofits.org","glassdoor.com","indeed.com","ziprecruiter.com",
   "yelp.com","meetup.com","eventbrite.com","givengain.com","justgiving.com","donorbox.org",
-  "crunchbase.com","bloomberg.com","pitchbook.com","rocketreach.co","zoominfo.com","owler.com",
+  "crunchbase.com","pitchbook.com","rocketreach.co","zoominfo.com","owler.com",
   "facebook.com","twitter.com","x.com","instagram.com","linkedin.com","youtube.com","tiktok.com",
+  // wiki / caches
   "wikipedia.org","m.wikidata.org","wikimedia.org",
   "webcache.googleusercontent.com","translate.google.com"
 ];
@@ -610,6 +613,144 @@ function humanMoneyShort(n){
   return `$${x.toLocaleString()}`;
 }
 
+/* ============ AI 10-word one-liner generation ============ */
+const ONE_LINER_BAN = /\b(empower(?:ing|s)?|transformative|innovative|impactful|game[-\s]?changing|world[-\s]?class)\b/i;
+
+function tenWords(str) {
+  return String(str).trim().split(/\s+/).filter(Boolean);
+}
+function isValidOneLiner(s) {
+  const words = tenWords(s);
+  if (words.length !== 10) return false;
+  if (ONE_LINER_BAN.test(s)) return false;
+  if (/[“”"]/g.test(s)) return false; // no quotes
+  return true;
+}
+function nteeLetterToName(letter = "Z") {
+  const map = {
+    A:"Arts, Culture & Humanities", B:"Education", C:"Environment & Animals", D:"Environment & Animals",
+    E:"Health", F:"Health", G:"Health", H:"Health",
+    I:"Human Services", J:"Human Services", K:"Human Services", L:"Human Services",
+    M:"Human Services", N:"Human Services", O:"Human Services", P:"Human Services",
+    Q:"International & Foreign Affairs",
+    R:"Public & Societal Benefit", S:"Public & Societal Benefit", T:"Public & Societal Benefit",
+    U:"Public & Societal Benefit", V:"Public & Societal Benefit", W:"Public & Societal Benefit",
+    X:"Religion Related", Y:"Mutual/Membership Benefit", Z:"Unknown/Unclassified"
+  };
+  return map[String(letter).toUpperCase()] || "Unknown/Unclassified";
+}
+function fallbackOneLiner(org) {
+  const cat = nteeLetterToName(org.ntee_code?.[0] || "Z").toLowerCase();
+  const city = (org.city || "").trim();
+  const state = (org.state || "").trim();
+  const where = city && state ? `${city}, ${state}` : (city || state || "local communities");
+  const base = `Supports people through ${cat} programs and services across ${where} today.`;
+  const words = tenWords(base);
+  if (words.length === 10 && !ONE_LINER_BAN.test(base)) return base;
+  return "Supports people through community programs and services across neighborhoods today.";
+}
+async function generateOrgOneLiner(org) {
+  if (!config?.OPENAI_API_KEY) return fallbackOneLiner(org);
+
+  const name = org.name || "The organization";
+  const city = (org.city || "").trim();
+  const state = (org.state || "").trim();
+  const where = [city, state].filter(Boolean).join(", ");
+  const nteeCat = nteeLetterToName(org.ntee_code?.[0] || "Z");
+
+  const sys = `You write crisp, concrete, varied copy for nonprofit cards.`;
+  const usr = `
+Write EXACTLY ten words describing this nonprofit’s public-facing mission.
+- Avoid buzzwords: empowering, empower, transformative, innovative, impactful, game-changing, world-class, support.
+- No emojis, no quotation marks, no hashtags.
+- Use active verbs and clear, human language.
+- Do NOT include numbers; numbers are displayed elsewhere.
+- If location is provided, you may hint at community focus without repeating the city/state verbatim.
+- Do NOT exceed or go under ten words.
+
+Organization: ${name}
+Category: ${nteeCat}
+Location: ${where || "—"}
+Return ONLY the ten-word line.
+`.trim();
+
+  try {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${config.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.55,
+        top_p: 0.9,
+        n: 4,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: "Write exactly ten words for a legal-aid nonprofit. No numbers." },
+          { role: "assistant", content: "Expands access to justice through free clinics and community education." },
+          { role: "user", content: "Ten words for a housing nonprofit. No numbers." },
+          { role: "assistant", content: "Builds safe, affordable homes with neighbors and dedicated local volunteers." },
+          { role: "user", content: "Ten words for an environmental nonprofit. No numbers." },
+          { role: "assistant", content: "Protects habitats, restores waterways, and mobilizes communities for conservation." },
+          { role: "user", content: usr }
+        ]
+      })
+    });
+
+    if (!resp.ok) throw new Error(`OpenAI ${resp.status}`);
+    const data = await resp.json();
+    const candidates = (data?.choices || [])
+      .map(c => (c.message?.content || "").trim().replace(/[“”"]/g, ""))
+      .filter(Boolean);
+
+    for (const c of candidates) {
+      if (isValidOneLiner(c)) return c;
+      const cleaned = c.replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim();
+      if (isValidOneLiner(cleaned)) return cleaned;
+    }
+
+    // quick regen
+    const regen = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${config.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.6,
+        top_p: 0.9,
+        n: 3,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: usr }
+        ]
+      })
+    });
+    if (regen.ok) {
+      const data2 = await regen.json();
+      const candidates2 = (data2?.choices || [])
+        .map(c => (c.message?.content || "").trim().replace(/[“”"]/g, ""))
+        .filter(Boolean);
+      for (const c of candidates2) {
+        if (isValidOneLiner(c)) return c;
+        const cleaned = c.replace(/[^\w\s'-]/g, " ").replace(/\s+/g, " ").trim();
+        if (isValidOneLiner(cleaned)) return cleaned;
+      }
+    }
+  } catch (e) {
+    console.error("One-liner generation error:", e);
+  }
+  return fallbackOneLiner(org);
+}
+async function generateOneLinersForOrgs(orgs) {
+  const arr = Array.isArray(orgs) ? orgs : [];
+  const tasks = arr.map(o => generateOrgOneLiner(o));
+  return Promise.all(tasks);
+}
+
 /* ============================================
    10) Initialize: tie everything together
    ============================================ */
@@ -726,7 +867,8 @@ async function openTextBox() {
   isTextBoxOpen = true;
 
   try {
-    
+    const htmlResponse = await fetch(textBoxHTMLUrl);
+    const componentHTML = await htmlResponse.text();
 
     const mainWrapper = document.createElement("div");
     mainWrapper.id = "eco-main-wrapper";
@@ -787,9 +929,15 @@ async function openTextBox() {
       return iconUrls;
     }
 
+    // Generate 10-word one-liners for up to 3 orgs
+    let oneLiners = [];
+    try {
+      oneLiners = await generateOneLinersForOrgs(organizations.slice(0, 3));
+    } catch { oneLiners = []; }
+
     const iconUrls = transformOrganizationsWithNTEE(organizations.slice(0, 3));
 
-    // Build the 3 cards, now including assets for each org
+    // Build the 3 cards, including AI line + assets pill
     const componentsData =
       organizations.length > 0
         ? organizations.slice(0, 3).map((org, index) => {
@@ -799,15 +947,15 @@ async function openTextBox() {
               title: org.name,
               subtext1: `${org.city}, ${org.state}`,
               subtext2: "Nonprofit",
-              activeText: `Learn more about ${org.name} and how you can support their mission in your local community.`,
+              activeText: oneLiners[index] || `Learn more about ${org.name} and how you can help.`,
               supportURL: org.website || "#",
-              assetsDisplay // <-- new: formatted assets for the pill
+              assetsDisplay
             };
           })
         : [
-            { componentId: "comp-1", title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission", activeText: "Learn more about Habitat for Humanity.", supportURL: "https://www.habitat.org", assetsDisplay: "$100M" },
-            { componentId: "comp-2", title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation", activeText: "Learn more about the local food bank drive.", supportURL: "https://www.feedingamerica.org", assetsDisplay: "$2.1M" },
-            { componentId: "comp-3", title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event", activeText: "Learn more about this Earth Day cleanup.", supportURL: "https://www.earthday.org", assetsDisplay: "$450K" },
+            { componentId: "comp-1", title: "Habitat for Humanity", subtext1: "10 miles", subtext2: "Mission", activeText: "Builds safe, affordable homes with neighbors and dedicated local volunteers.", supportURL: "https://www.habitat.org", assetsDisplay: "$100M" },
+            { componentId: "comp-2", title: "Local Food Bank Drive", subtext1: "5 miles", subtext2: "Donation", activeText: "Delivers nutritious groceries weekly for households facing food insecurity.", supportURL: "https://www.feedingamerica.org", assetsDisplay: "$2.1M" },
+            { componentId: "comp-3", title: "Park Cleanup Event for Earth Day", subtext1: "15 miles", subtext2: "Event", activeText: "Mobilizes neighbors to restore parks, trails, and urban wildlife habitats.", supportURL: "https://www.earthday.org", assetsDisplay: "$450K" },
           ];
 
     if (organizations.length > 0) {
@@ -822,8 +970,6 @@ async function openTextBox() {
     }
 
     // Mount 3 cards
-    const htmlResponse = await fetch(textBoxHTMLUrl);
-    const componentHTML = await htmlResponse.text();
     componentsData.forEach((data) => {
       const box = document.createElement("div");
       box.id = data.componentId;

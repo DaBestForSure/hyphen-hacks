@@ -110,7 +110,7 @@
         .join("");
     }
 
-    // State & interactivity (unchanged)
+    // State & interactivity
     let state = "default";
     const setState = (s) => {
       root.className = `variant-${s}`;
@@ -128,7 +128,7 @@
 
     root.addEventListener("click", (e) => {
       if (e.target.id === "comp-button" || (e.target.closest && e.target.closest("#comp-button"))) {
-        return;
+        return; // allow link
       }
       setState(state === "active" ? "default" : "active");
       e.stopPropagation();
